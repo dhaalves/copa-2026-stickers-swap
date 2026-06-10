@@ -1,33 +1,18 @@
-# Plan: Update Teams to Match Official draw (Final image)
+# Plan: Remove Flag Emojis from UI Headers & Badges
 
-This plan replaces play-off placeholder teams in our database with the actual countries shown in the second image.
+This plan removes flag emojis from country headers and matching list badges to prevent Windows browsers (which lack native flag fonts) from rendering them as redundant two-letter country codes (e.g. `CZ CZE` or `MX MEX`).
 
 ---
 
 ## 🛠️ Proposed Changes
 
-### 1. [MODIFY] [parser.js](file:///C:/Users/uel/.gemini/antigravity/scratch/copa-2026-stickers/js/parser.js)
-- **Change**: Replace TEAMS list to reflect:
-  - Group A: MEX, RSA, KOR, CZE
-  - Group B: CAN, BIH, QAT, SUI
-  - Group C: BRA, MAR, HAI, SCO
-  - Group D: USA, PAR, AUS, TUR
-  - Group E: GER, CUW, CIV, ECU
-  - Group F: NED, JPN, SWE, TUN
-  - Group G: BEL, EGY, IRN, NZL
-  - Group H: ESP, CPV, KSA, URU
-  - Group I: FRA, SEN, IRQ, NOR
-  - Group J: ARG, ALG, AUT, JOR
-  - Group K: POR, COD, UZB, COL
-  - Group L: ENG, CRO, GHA, PAN
-
-### 2. [MODIFY] [test_parser.js](file:///C:/Users/uel/.gemini/antigravity/scratch/copa-2026-stickers/js/test_parser.js)
-- **Change**: Align assertions with the updated team indexes.
-  - Sticker 994 (index 47) -> PAN (Panama)
-  - Sticker 55 (index 1) -> RSA (South Africa)
-  - Sticker 35 (index 0) -> MEX (Mexico)
+### 1. [MODIFY] [app.js](file:///C:/Users/uel/.gemini/antigravity/scratch/copa-2026-stickers/js/app.js)
+- **Change**: 
+  - In `renderStickerGrid()`, remove the flag span from team header generation so it only renders the 3-letter code and name.
+  - In `renderMatchResults()`, remove the flag emoji from the sticker badges.
+  - In `shareTradeOnWhatsapp()`, remove the flag emoji from the compiled WhatsApp share text.
 
 ---
 
 ## 🔍 Verification Plan
-- **Automated Tests**: Run `node js/test_parser.js` and `node js/check_user_input.js` to ensure the mapping boundaries and parsing works cleanly.
+- **Manual Verification**: Verify that team headers display cleanly as `CZE República Tcheca` (without the redundant `CZ` prefix) and match badges render as `CZE 35`.

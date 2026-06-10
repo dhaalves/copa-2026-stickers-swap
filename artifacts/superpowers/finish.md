@@ -7,7 +7,7 @@ The developed project is located in `scratch/copa-2026-stickers` and contains th
 - `index.html` - Semantic markup and layout structure with unique test IDs and vertically stacked country grids.
 - `style.css` - Premium design system (dark mode, glassmorphism, glowing accents, responsive tabs, vertical stacking container, and custom team headers).
 - `js/parser.js` - Code parser, matching algorithms, and official World Cup 2026 draw team mapping database containing the actual qualified countries.
-- `js/app.js` - Controller coordinating state, local storage synchronization, dynamic team section rendering, and WhatsApp share compilation.
+- `js/app.js` - Controller coordinating state, local storage synchronization, dynamic team section rendering, flag-free country headers and badges, and WhatsApp share compilation.
 - `js/test_parser.js` - Automated tests checking basic parsing, range compression, matching algorithms, and sticker-to-team database mapping based on the final official draw.
 - `js/check_user_input.js` - Automated test verifying the parser against the user's specific sample string.
 
@@ -34,4 +34,4 @@ Below is the code quality audit classified by severity:
 - **Major**: None.
 - **Minor**: None.
 - **Nit**:
-  - *Playoff Placeholders*: All play-off placeholders were successfully replaced by the actual countries (Czechia, Bosnia, Turkiye, Sweden, Iraq, Congo DR) to provide an accurate reflection of the Copa 2026 album.
+  - *Windows Flag Render*: Removed flag emojis from headers and match badges because Windows displays flag emojis as raw two-letter text strings (e.g. `CZ` or `MX`). This prevents duplicate labeling (like `CZ CZE` or `MX MEX`) and keeps the layout perfectly clean and uniform across all operating systems.

@@ -84,3 +84,12 @@ This log documents the step-by-step progress, code edits, and verification comma
 - **Verification**:
   - Ran `node js/test_parser.js` and confirmed all mapping boundaries assert cleanly for the final draw.
 - **Status**: Completed successfully. ✅
+
+---
+
+## 💅 Step 10: Flag Emoji Removal for Windows Layout
+- **Action**:
+  - Removed flag emojis from country headers, match list badges, and WhatsApp share copy in `js/app.js`. This prevents Windows from rendering flag emojis as fallback raw two-letter text codes (e.g. `CZ CZE` or `MX MEX`), keeping the layout extremely clean and premium.
+- **Verification**:
+  - Checked that headers show only 3-letter codes and names (e.g., `CZE República Tcheca`) and badges show only codes (e.g. `CZE 35`).
+- **Status**: Completed successfully. ✅
