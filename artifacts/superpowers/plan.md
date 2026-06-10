@@ -1,25 +1,33 @@
-# Plan: Fix Sticker Grid Layout Overflow
+# Plan: Update Teams to Match Official draw (Final image)
 
-This plan corrects the layout issue where team sections are squished horizontally instead of stacking vertically.
+This plan replaces play-off placeholder teams in our database with the actual countries shown in the second image.
 
 ---
 
 ## 🛠️ Proposed Changes
 
-### 1. [MODIFY] [index.html](file:///C:/Users/uel/.gemini/antigravity/scratch/copa-2026-stickers/index.html)
-- **Change**: Rename the class on `#stickers-grid-container` from `stickers-grid` to `stickers-container` to avoid applying the 5-column grid style directly to the parent team section container.
+### 1. [MODIFY] [parser.js](file:///C:/Users/uel/.gemini/antigravity/scratch/copa-2026-stickers/js/parser.js)
+- **Change**: Replace TEAMS list to reflect:
+  - Group A: MEX, RSA, KOR, CZE
+  - Group B: CAN, BIH, QAT, SUI
+  - Group C: BRA, MAR, HAI, SCO
+  - Group D: USA, PAR, AUS, TUR
+  - Group E: GER, CUW, CIV, ECU
+  - Group F: NED, JPN, SWE, TUN
+  - Group G: BEL, EGY, IRN, NZL
+  - Group H: ESP, CPV, KSA, URU
+  - Group I: FRA, SEN, IRQ, NOR
+  - Group J: ARG, ALG, AUT, JOR
+  - Group K: POR, COD, UZB, COL
+  - Group L: ENG, CRO, GHA, PAN
 
-### 2. [MODIFY] [style.css](file:///C:/Users/uel/.gemini/antigravity/scratch/copa-2026-stickers/style.css)
-- **Change**: Add styling for `.stickers-container` to stack team sections vertically:
-  ```css
-  .stickers-container {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-  }
-  ```
+### 2. [MODIFY] [test_parser.js](file:///C:/Users/uel/.gemini/antigravity/scratch/copa-2026-stickers/js/test_parser.js)
+- **Change**: Align assertions with the updated team indexes.
+  - Sticker 994 (index 47) -> PAN (Panama)
+  - Sticker 55 (index 1) -> RSA (South Africa)
+  - Sticker 35 (index 0) -> MEX (Mexico)
 
 ---
 
 ## 🔍 Verification Plan
-- **Manual Verification**: Verify that each team (e.g. Mexico, Italy, etc.) stacks vertically, taking up the full container width, and showing their 20 sticker cells in a clean grid beneath their header.
+- **Automated Tests**: Run `node js/test_parser.js` and `node js/check_user_input.js` to ensure the mapping boundaries and parsing works cleanly.
