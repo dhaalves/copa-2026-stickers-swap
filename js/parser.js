@@ -4,10 +4,112 @@
  * Example: SA26|1|4,21,24-27|24:1,26:1,42:3
  */
 
+// Official 48 Teams of Copa 2026 grouped into 12 Groups (A to L)
+const TEAMS = [
+  // Group A
+  { code: 'MEX', flag: '🇲🇽', name: 'México', group: 'Grupo A' },
+  { code: 'RSA', flag: '🇿🇦', name: 'África do Sul', group: 'Grupo A' },
+  { code: 'KOR', flag: '🇰🇷', name: 'Coreia do Sul', group: 'Grupo A' },
+  { code: 'EUD', flag: '🌍', name: 'Repescagem Eur. D', group: 'Grupo A' },
+  // Group B
+  { code: 'CAN', flag: '🇨🇦', name: 'Canadá', group: 'Grupo B' },
+  { code: 'SUI', flag: '🇨🇭', name: 'Suíça', group: 'Grupo B' },
+  { code: 'QAT', flag: '🇶🇦', name: 'Catar', group: 'Grupo B' },
+  { code: 'EUA', flag: '🌍', name: 'Repescagem Eur. A', group: 'Grupo B' },
+  // Group C
+  { code: 'BRA', flag: '🇧🇷', name: 'Brasil', group: 'Grupo C' },
+  { code: 'MAR', flag: '🇲🇦', name: 'Marrocos', group: 'Grupo C' },
+  { code: 'SCO', flag: '🏴󠁧󠁢󠁳󠁣󠁴󠁿', name: 'Escócia', group: 'Grupo C' },
+  { code: 'HAI', flag: '🇭🇹', name: 'Haiti', group: 'Grupo C' },
+  // Group D
+  { code: 'USA', flag: '🇺🇸', name: 'Estados Unidos', group: 'Grupo D' },
+  { code: 'PAR', flag: '🇵🇾', name: 'Paraguai', group: 'Grupo D' },
+  { code: 'AUS', flag: '🇦🇺', name: 'Austrália', group: 'Grupo D' },
+  { code: 'EUC', flag: '🌍', name: 'Repescagem Eur. C', group: 'Grupo D' },
+  // Group E
+  { code: 'GER', flag: '🇩🇪', name: 'Alemanha', group: 'Grupo E' },
+  { code: 'ECU', flag: '🇪🇨', name: 'Equador', group: 'Grupo E' },
+  { code: 'CUW', flag: '🇨🇼', name: 'Curaçao', group: 'Grupo E' },
+  { code: 'CIV', flag: '🇨🇮', name: 'Costa do Marfim', group: 'Grupo E' },
+  // Group F
+  { code: 'NED', flag: '🇳🇱', name: 'Holanda', group: 'Grupo F' },
+  { code: 'JPN', flag: '🇯🇵', name: 'Japão', group: 'Grupo F' },
+  { code: 'TUN', flag: '🇹🇳', name: 'Tunísia', group: 'Grupo F' },
+  { code: 'EUB', flag: '🌍', name: 'Repescagem Eur. B', group: 'Grupo F' },
+  // Group G
+  { code: 'BEL', flag: '🇧🇪', name: 'Bélgica', group: 'Grupo G' },
+  { code: 'EGY', flag: '🇪🇬', name: 'Egito', group: 'Grupo G' },
+  { code: 'IRN', flag: '🇮🇷', name: 'Irã', group: 'Grupo G' },
+  { code: 'NZL', flag: '🇳🇿', name: 'Nova Zelândia', group: 'Grupo G' },
+  // Group H
+  { code: 'ESP', flag: '🇪🇸', name: 'Espanha', group: 'Grupo H' },
+  { code: 'URU', flag: '🇺🇾', name: 'Uruguai', group: 'Grupo H' },
+  { code: 'KSA', flag: '🇸🇦', name: 'Arábia Saudita', group: 'Grupo H' },
+  { code: 'CPV', flag: '🇨🇻', name: 'Cabo Verde', group: 'Grupo H' },
+  // Group I
+  { code: 'FRA', flag: '🇫🇷', name: 'França', group: 'Grupo I' },
+  { code: 'SEN', flag: '🇸🇳', name: 'Senegal', group: 'Grupo I' },
+  { code: 'NOR', flag: '🇳🇴', name: 'Noruega', group: 'Grupo I' },
+  { code: 'IC2', flag: '🌍', name: 'Repescagem Inter. 2', group: 'Grupo I' },
+  // Group J
+  { code: 'ARG', flag: '🇦🇷', name: 'Argentina', group: 'Grupo J' },
+  { code: 'AUT', flag: '🇦🇹', name: 'Áustria', group: 'Grupo J' },
+  { code: 'ALG', flag: '🇩🇿', name: 'Argélia', group: 'Grupo J' },
+  { code: 'JOR', flag: '🇯🇴', name: 'Jordânia', group: 'Grupo J' },
+  // Group K
+  { code: 'POR', flag: '🇵🇹', name: 'Portugal', group: 'Grupo K' },
+  { code: 'COL', flag: '🇨🇴', name: 'Colômbia', group: 'Grupo K' },
+  { code: 'UZB', flag: '🇺🇿', name: 'Uzbequistão', group: 'Grupo K' },
+  { code: 'IC1', flag: '🌍', name: 'Repescagem Inter. 1', group: 'Grupo K' },
+  // Group L
+  { code: 'ENG', flag: '🏴󠁧󠁢󠁥󠁮󠁧󠁿', name: 'Inglaterra', group: 'Grupo L' },
+  { code: 'CRO', flag: '🇭🇷', name: 'Croácia', group: 'Grupo L' },
+  { code: 'GHA', flag: '🇬🇭', name: 'Gana', group: 'Grupo L' },
+  { code: 'PAN', flag: '🇵🇦', name: 'Panamá', group: 'Grupo L' }
+];
+
 const StickerParser = {
   TOTAL_STICKERS: 994,
   ALBUM_ID: 'SA26',
   VERSION: '1',
+  TEAMS: TEAMS,
+
+  /**
+   * Gets details for a specific sticker ID.
+   * @param {number} id 
+   * @returns {Object|null}
+   */
+  getStickerInfo(id) {
+    if (id < 1 || id > this.TOTAL_STICKERS) return null;
+    
+    // Intro & Stadiums (1 to 34)
+    if (id <= 34) {
+      return {
+        code: 'FWC',
+        flag: '🏆',
+        name: 'Intro & Estádios',
+        group: 'Intro',
+        relativeNumber: id
+      };
+    }
+    
+    // Teams (35 to 994)
+    // 48 teams of 20 stickers each
+    const teamIndex = Math.floor((id - 35) / 20);
+    if (teamIndex >= 0 && teamIndex < TEAMS.length) {
+      const team = TEAMS[teamIndex];
+      const relativeNumber = ((id - 35) % 20) + 1;
+      return {
+        code: team.code,
+        flag: team.flag,
+        name: team.name,
+        group: team.group,
+        relativeNumber: relativeNumber
+      };
+    }
+    
+    return null;
+  },
 
   /**
    * Parses an album code string into structured state.
@@ -26,7 +128,6 @@ const StickerParser = {
       return result;
     }
 
-    // Clean and split string
     const parts = codeStr.trim().split('|');
     if (parts.length < 3) {
       return result;
@@ -35,7 +136,6 @@ const StickerParser = {
     result.albumId = parts[0] || this.ALBUM_ID;
     result.version = parts[1] || this.VERSION;
 
-    // Parse owned stickers (Part 2)
     const ownedPart = parts[2];
     if (ownedPart) {
       const items = ownedPart.split(',');
@@ -63,7 +163,6 @@ const StickerParser = {
       }
     }
 
-    // Parse repeated stickers (Part 3)
     const repeatedPart = parts[3];
     if (repeatedPart) {
       const items = repeatedPart.split(',');
@@ -96,7 +195,6 @@ const StickerParser = {
   compressToRanges(numbers) {
     if (!numbers || numbers.length === 0) return '';
     
-    // Ensure sorted and unique
     const sorted = Array.from(new Set(numbers)).map(Number).sort((a, b) => a - b);
     const ranges = [];
     
@@ -135,7 +233,6 @@ const StickerParser = {
     
     const repeatedArr = [];
     if (state.repeated) {
-      // Sort repeated keys for deterministic output
       const sortedKeys = Array.from(state.repeated.keys()).sort((a, b) => a - b);
       for (const key of sortedKeys) {
         const qty = state.repeated.get(key);
@@ -156,10 +253,9 @@ const StickerParser = {
    * @returns {Object} { give: number[], receive: number[] }
    */
   matchAlbums(stateA, stateB) {
-    const give = [];    // Stickers User A has repeated that User B doesn't have in owned
-    const receive = []; // Stickers User B has repeated that User A doesn't have in owned
+    const give = [];
+    const receive = [];
 
-    // A gives to B: A has repeated, B does NOT own
     if (stateA.repeated && stateB.owned) {
       for (const [id, qty] of stateA.repeated.entries()) {
         if (qty > 0 && !stateB.owned.has(id)) {
@@ -168,7 +264,6 @@ const StickerParser = {
       }
     }
 
-    // B gives to A (A receives): B has repeated, A does NOT own
     if (stateB.repeated && stateA.owned) {
       for (const [id, qty] of stateB.repeated.entries()) {
         if (qty > 0 && !stateA.owned.has(id)) {
@@ -177,7 +272,6 @@ const StickerParser = {
       }
     }
 
-    // Sort outputs numerically
     give.sort((a, b) => a - b);
     receive.sort((a, b) => a - b);
 

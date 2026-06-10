@@ -763,6 +763,12 @@ textarea:focus {
    TEAM SECTION & COUNTRY HEADERS
    ========================================================================== */
 
+.stickers-container {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
 .team-section {
     margin-bottom: 24px;
 }

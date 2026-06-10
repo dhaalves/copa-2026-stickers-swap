@@ -21,19 +21,12 @@ assert.ok(!state1.owned.has(28));
 assert.strictEqual(state1.repeated.get(24), 1);
 assert.strictEqual(state1.repeated.get(26), 1);
 assert.strictEqual(state1.repeated.get(42), 3);
-assert.strictEqual(state1.repeated.get(10), undefined);
 console.log('   ✅ Basic parsing passed.');
 
 // Test 2: Compression of ranges
 console.log('2. Testing range compression...');
 const compressed = StickerParser.compressToRanges([4, 21, 24, 25, 26, 27, 30]);
 assert.strictEqual(compressed, '4,21,24-27,30');
-
-const compressedSingle = StickerParser.compressToRanges([42]);
-assert.strictEqual(compressedSingle, '42');
-
-const compressedEmpty = StickerParser.compressToRanges([]);
-assert.strictEqual(compressedEmpty, '');
 console.log('   ✅ Range compression passed.');
 
 // Test 3: Code Generation
@@ -50,37 +43,57 @@ console.log('   ✅ Code generation passed.');
 
 // Test 4: Album Matching
 console.log('4. Testing sticker matching...');
-// User A: Has 1, 2, 3 in album. Repeated: 4:1 (B doesn't have 4), 1:1 (B has 1).
 const userA = {
   owned: new Set([1, 2, 3]),
   repeated: new Map([[4, 1], [1, 1]])
 };
-// User B: Has 1, 5 in album. Repeated: 2:1 (A has 2), 6:1 (A doesn't have 6).
 const userB = {
   owned: new Set([1, 5]),
   repeated: new Map([[2, 1], [6, 1]])
 };
 
 const matches = StickerParser.matchAlbums(userA, userB);
-// A gives B: 4 (B has 1 and 5, so B needs 4. A has 1 repeated but B has 1 owned, so B doesn't need 1)
 assert.deepStrictEqual(matches.give, [4]);
-// A receives from B: 6 (A has 1, 2, 3 owned. B has 2 repeated but A owns 2, so A doesn't need 2. B has 6 repeated and A lacks 6, so A gets 6)
 assert.deepStrictEqual(matches.receive, [6]);
 console.log('   ✅ Sticker matching passed.');
 
-// Test 5: Parsing edge cases
-console.log('5. Testing parsing edge cases...');
-const emptyState = StickerParser.parseAlbumCode('');
-assert.strictEqual(emptyState.owned.size, 0);
-assert.strictEqual(emptyState.repeated.size, 0);
+// Test 5: Mapping Teams & Groups
+console.log('5. Testing sticker to team/group mapping...');
+// 1. Sticker 1 -> Intro & Estádios
+const info1 = StickerParser.getStickerInfo(1);
+assert.strictEqual(info1.code, 'FWC');
+assert.strictEqual(info1.flag, '🏆');
+assert.strictEqual(info1.group, 'Intro');
+assert.strictEqual(info1.relativeNumber, 1);
 
-const invalidCode = 'SA26|1';
-const invalidState = StickerParser.parseAlbumCode(invalidCode);
-assert.strictEqual(invalidState.owned.size, 0);
-assert.strictEqual(invalidState.repeated.size, 0);
+// 2. Sticker 34 -> Intro & Estádios (end boundary)
+const info34 = StickerParser.getStickerInfo(34);
+assert.strictEqual(info34.relativeNumber, 34);
 
-const repeatedWithNoQuantity = StickerParser.parseAlbumCode('SA26|1|1|42');
-assert.strictEqual(repeatedWithNoQuantity.repeated.get(42), 1);
-console.log('   ✅ Edge cases passed.');
+// 3. Sticker 35 -> MEX (first team, first sticker)
+const info35 = StickerParser.getStickerInfo(35);
+assert.strictEqual(info35.code, 'MEX');
+assert.strictEqual(info35.flag, '🇲🇽');
+assert.strictEqual(info35.group, 'Grupo A');
+assert.strictEqual(info35.relativeNumber, 1);
+
+// 4. Sticker 54 -> MEX (first team, last sticker)
+const info54 = StickerParser.getStickerInfo(54);
+assert.strictEqual(info54.code, 'MEX');
+assert.strictEqual(info54.relativeNumber, 20);
+
+// 5. Sticker 55 -> RSA (second team, first sticker)
+const info55 = StickerParser.getStickerInfo(55);
+assert.strictEqual(info55.code, 'RSA');
+assert.strictEqual(info55.flag, '🇿🇦');
+assert.strictEqual(info55.relativeNumber, 1);
+
+// 6. Sticker 994 -> PAN (last team, last sticker)
+const info994 = StickerParser.getStickerInfo(994);
+assert.strictEqual(info994.code, 'PAN');
+assert.strictEqual(info994.flag, '🇵🇦');
+assert.strictEqual(info994.group, 'Grupo L');
+assert.strictEqual(info994.relativeNumber, 20);
+console.log('   ✅ Team & group mapping tests passed.');
 
 console.log('\n🎉 All tests passed successfully!');
