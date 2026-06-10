@@ -503,6 +503,85 @@ textarea:focus {
     transform: scale(0.95);
 }
 
+/* Sticker label styling and shift animation */
+.sticker-label {
+    transition: transform var(--transition-normal);
+}
+
+.sticker-cell.owned .sticker-label,
+.sticker-cell.repeated .sticker-label {
+    transform: translateY(-5px);
+}
+
+/* Cell Controls Container */
+.cell-controls {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 24px;
+    display: flex;
+    justify-content: space-between;
+    padding: 0 4px 4px;
+    opacity: 0;
+    transform: translateY(4px);
+    transition: opacity var(--transition-normal), transform var(--transition-normal);
+    pointer-events: none;
+}
+
+.sticker-cell.owned .cell-controls,
+.sticker-cell.repeated .cell-controls {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+}
+
+/* Control Buttons */
+.control-btn {
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(15, 22, 38, 0.95);
+    color: var(--text-secondary);
+    font-size: 11px;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    user-select: none;
+    backdrop-filter: blur(4px);
+}
+
+.control-btn:hover {
+    color: var(--text-primary);
+    transform: scale(1.15);
+}
+
+.control-btn:active {
+    transform: scale(0.9);
+}
+
+.control-btn.btn-dec:hover {
+    background: rgba(239, 68, 68, 0.25);
+    border-color: rgba(239, 68, 68, 0.5);
+    color: #ef4444;
+}
+
+.control-btn.btn-inc:hover {
+    background: rgba(16, 185, 129, 0.25);
+    border-color: rgba(16, 185, 129, 0.5);
+    color: #10b981;
+}
+
+.sticker-cell.repeated .control-btn.btn-inc:hover {
+    background: rgba(234, 179, 8, 0.25);
+    border-color: rgba(234, 179, 8, 0.5);
+    color: #eab308;
+}
+
 /* Sticker state modifiers */
 .sticker-cell.owned {
     background: var(--accent-primary-glow);

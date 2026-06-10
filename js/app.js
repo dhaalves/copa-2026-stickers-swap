@@ -270,21 +270,49 @@ document.addEventListener('DOMContentLoaded', () => {
         cell.className = 'sticker-cell';
         
         const info = StickerParser.getStickerInfo(i);
-        cell.textContent = info ? info.relativeNumber : i;
         cell.dataset.id = i;
         if (info) {
             cell.title = `${info.code} #${info.relativeNumber} (Álbum: ${i})`;
         }
 
+        // Create main label span for the sticker number
+        const label = document.createElement('span');
+        label.className = 'sticker-label';
+        label.textContent = info ? info.relativeNumber : i;
+        cell.appendChild(label);
+
         const isOwned = state.myAlbum.owned.has(i);
         const repeatedQty = state.myAlbum.repeated.get(i) || 0;
 
+        // Create the controls container
+        const controls = document.createElement('div');
+        controls.className = 'cell-controls';
+
+        const btnDec = document.createElement('button');
+        btnDec.className = 'control-btn btn-dec';
+        btnDec.textContent = '-';
+        btnDec.title = 'Remover repetida / Marcar como não possuído';
+        btnDec.addEventListener('click', (e) => {
+            e.stopPropagation();
+            handleDecrementClick(i, cell);
+        });
+
+        const btnInc = document.createElement('button');
+        btnInc.className = 'control-btn btn-inc';
+        btnInc.textContent = '+';
+        btnInc.title = 'Adicionar repetida';
+        btnInc.addEventListener('click', (e) => {
+            e.stopPropagation();
+            handleIncrementClick(i, cell);
+        });
+
+        controls.appendChild(btnDec);
+        controls.appendChild(btnInc);
+        cell.appendChild(controls);
+
         if (repeatedQty > 0) {
             cell.classList.add('repeated');
-            const badge = document.createElement('span');
-            badge.className = 'sticker-badge';
-            badge.textContent = `+${repeatedQty}`;
-            cell.appendChild(badge);
+            addBadge(cell, repeatedQty);
         } else if (isOwned) {
             cell.classList.add('owned');
         }
@@ -298,7 +326,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function handleStickerClick(id, cellElement) {
         const isOwned = state.myAlbum.owned.has(id);
-        const repeatedQty = state.myAlbum.repeated.get(id) || 0;
 
         // Clean cell state
         cellElement.classList.remove('owned', 'repeated');
@@ -310,28 +337,67 @@ document.addEventListener('DOMContentLoaded', () => {
             state.myAlbum.owned.add(id);
             state.myAlbum.repeated.delete(id);
             cellElement.classList.add('owned');
-        } else if (repeatedQty === 0) {
-            // Owned -> Repeated (+1)
-            state.myAlbum.repeated.set(id, 1);
-            cellElement.classList.add('repeated');
-            addBadge(cellElement, 1);
-        } else if (repeatedQty === 1) {
-            // Repeated (+1) -> Repeated (+2)
-            state.myAlbum.repeated.set(id, 2);
-            cellElement.classList.add('repeated');
-            addBadge(cellElement, 2);
-        } else if (repeatedQty === 2) {
-            // Repeated (+2) -> Repeated (+3)
-            state.myAlbum.repeated.set(id, 3);
-            cellElement.classList.add('repeated');
-            addBadge(cellElement, 3);
         } else {
-            // Repeated (+3) -> Missing
+            // Owned/Repeated -> Missing
             state.myAlbum.owned.delete(id);
             state.myAlbum.repeated.delete(id);
         }
 
         // Save and Update UI
+        saveMyAlbumToStorage();
+        updateMyAlbumUI();
+    }
+
+    function handleIncrementClick(id, cellElement) {
+        // If not owned, mark as owned first
+        if (!state.myAlbum.owned.has(id)) {
+            state.myAlbum.owned.add(id);
+        }
+
+        const currentQty = state.myAlbum.repeated.get(id) || 0;
+        const newQty = currentQty + 1;
+        state.myAlbum.repeated.set(id, newQty);
+
+        cellElement.classList.remove('owned');
+        cellElement.classList.add('repeated');
+
+        let badge = cellElement.querySelector('.sticker-badge');
+        if (badge) {
+            badge.textContent = `+${newQty}`;
+        } else {
+            addBadge(cellElement, newQty);
+        }
+
+        saveMyAlbumToStorage();
+        updateMyAlbumUI();
+    }
+
+    function handleDecrementClick(id, cellElement) {
+        if (!state.myAlbum.owned.has(id)) return;
+
+        const currentQty = state.myAlbum.repeated.get(id) || 0;
+        if (currentQty > 0) {
+            const newQty = currentQty - 1;
+            if (newQty === 0) {
+                state.myAlbum.repeated.delete(id);
+                cellElement.classList.remove('repeated');
+                cellElement.classList.add('owned');
+                const badge = cellElement.querySelector('.sticker-badge');
+                if (badge) badge.remove();
+            } else {
+                state.myAlbum.repeated.set(id, newQty);
+                const badge = cellElement.querySelector('.sticker-badge');
+                if (badge) badge.textContent = `+${newQty}`;
+            }
+        } else {
+            // Dec from 0 repeats -> marks as missing
+            state.myAlbum.owned.delete(id);
+            state.myAlbum.repeated.delete(id);
+            cellElement.classList.remove('owned', 'repeated');
+            const badge = cellElement.querySelector('.sticker-badge');
+            if (badge) badge.remove();
+        }
+
         saveMyAlbumToStorage();
         updateMyAlbumUI();
     }

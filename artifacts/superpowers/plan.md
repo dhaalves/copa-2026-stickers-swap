@@ -1,32 +1,42 @@
-# Plan: Split Intro Section into FWC and CC Sections
+# Plan: Unlimited Repeated Stickers & In-Cell Controls
 
-This plan implements the "FWC & CC" section, splitting the initial 34 stickers into a 20-sticker FWC section (numbered 00 to 19) and a 14-sticker CC section (numbered 1 to 14), with custom logo badges and progress trackers matching the user's image.
+This plan adds in-cell `+` and `-` controls to sticker cells when owned/repeated, allowing users to increment repeated sticker counts indefinitely and decrement them back to owned/missing states without a limit.
 
 ---
 
 ## 🛠️ Proposed Changes
 
-### 1. [MODIFY] [parser.js](file:///C:/Users/uel/.gemini/antigravity/scratch/copa-2026-stickers/js/parser.js)
-- **Change**: Update `getStickerInfo(id)` to map:
-  - Stickers 1 to 20: code `FWC`, group `FWC & CC`, name `FIFA World Cup`, relativeNumber `00` (for id 1) or `id - 1` (for ids 2-20).
-  - Stickers 21 to 34: code `CC`, group `FWC & CC`, name `Coca-Cola`, relativeNumber `id - 20`.
+### 1. [MODIFY] [app.js](file:///C:/Users/uel/.gemini/antigravity/scratch/copa-2026-stickers/js/app.js)
+* **Change**:
+  * In `createStickerCell(i)`:
+    * Wrap the relative number text in a `span` with class `.sticker-label`.
+    * Create and append a `.cell-controls` container at the bottom of the cell.
+    * Add `-` (`.btn-dec`) and `+` (`.btn-inc`) buttons inside `.cell-controls`.
+    * Set click event listeners on the buttons, calling `stopPropagation()` to prevent triggering the cell's main click handler.
+  * In `handleStickerClick(id, cellElement)`:
+    * Simplify to only toggle between Owned and Missing. If it becomes Missing, clear all ownership and repeated states for that sticker ID.
+  * Add helper functions:
+    * `handleIncrementClick(id, cellElement)`: Increments the repeated quantity, marks as repeated, adds/updates the badge, and saves.
+    * `handleDecrementClick(id, cellElement)`: Decrements the repeated quantity. If it reaches 0, it removes the badge and switches back to the plain "Owned" state. If decremented again from 0, it marks the sticker as "Missing".
 
-### 2. [MODIFY] [app.js](file:///C:/Users/uel/.gemini/antigravity/scratch/copa-2026-stickers/js/app.js)
-- **Change**:
-  - Update group definitions: rename `Intro` to `FWC & CC`.
-  - In `renderStickerGrid()`, if current group is `FWC & CC`, render two separate `.team-section` elements vertically:
-    - FWC section: Orange badge icon `⭐`, text `FWC`, progress count (`owned_FWC / 20`).
-    - CC section: Red badge icon `🥤`, text `CC`, progress count (`owned_CC / 14`).
-  - For Country sections, append progress trackers (`owned_country / 20`) on the right side of the headers.
-
-### 3. [MODIFY] [style.css](file:///C:/Users/uel/.gemini/antigravity/scratch/copa-2026-stickers/style.css)
-- **Change**: Add CSS classes for the progress trackers (`.team-progress`), orange and red header icons (`.badge-icon`, `.badge-fwc`, `.badge-cc`), and justify layout inside headers.
-
-### 4. [MODIFY] [test_parser.js](file:///C:/Users/uel/.gemini/antigravity/scratch/copa-2026-stickers/js/test_parser.js)
-- **Change**: Align assertions for stickers 1, 20, 21, and 34 to match FWC/CC specifications.
+### 2. [MODIFY] [style.css](file:///C:/Users/uel/.gemini/antigravity/scratch/copa-2026-stickers/style.css)
+* **Change**:
+  * Style `.cell-controls` to absolute position at the bottom of `.sticker-cell`.
+  * Make `.cell-controls` visible only when the parent cell has the `.owned` or `.repeated` class.
+  * Style `.control-btn` as small, readable buttons with hover and active states (using red tones for `-` and emerald/amber tones for `+` on hover).
+  * Align the sticker label center-vertically slightly offset upwards to accommodate the bottom controls.
 
 ---
 
 ## 🔍 Verification Plan
-- **Automated Tests**: Run `node js/test_parser.js` and `node js/check_user_input.js`.
-- **Manual Verification**: Check that selecting the FWC & CC tab displays two separate stacked cards: FWC (with Star and 20 stickers) and CC (with Cup/Soda and 14 stickers) and their respective progress counters.
+
+### Automated Tests
+- Run `node js/test_parser.js` to verify that existing parser and matcher functions behave correctly.
+- Run `node js/check_user_input.js` to ensure the parser handles complex and large inputs.
+
+### Manual Verification
+- Launch the application and click a sticker to mark it as owned. Verify the `-` and `+` buttons appear.
+- Click the `+` button multiple times. Verify that the repeated count increases beyond `+3` (e.g., `+4`, `+5`, `+6`).
+- Click the `-` button to decrement the count. Check that the badge updates correctly.
+- Click `-` when the badge is gone (quantity = 0) and verify that the sticker reverts to the "Missing" state.
+- Click the main area of the cell to toggle its owned state directly.
