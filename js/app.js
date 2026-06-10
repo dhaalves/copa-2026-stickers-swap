@@ -205,7 +205,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 const header = document.createElement('div');
                 header.className = 'team-section-header';
                 header.innerHTML = `
-                    <span class="team-flag">${team.flag}</span>
                     <span class="team-code">${team.code}</span>
                     <span class="team-name">${team.name}</span>
                 `;
@@ -233,7 +232,7 @@ document.addEventListener('DOMContentLoaded', () => {
         cell.textContent = info ? info.relativeNumber : i;
         cell.dataset.id = i;
         if (info) {
-            cell.title = `${info.flag} ${info.code} #${info.relativeNumber} (Álbum: ${i})`;
+            cell.title = `${info.code} #${info.relativeNumber} (Álbum: ${i})`;
         }
 
         const isOwned = state.myAlbum.owned.has(i);
@@ -362,7 +361,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const info = StickerParser.getStickerInfo(id);
                 const badge = document.createElement('span');
                 badge.className = 'match-sticker-badge';
-                badge.textContent = info ? `${info.flag} ${info.code} ${id}` : id;
+                badge.textContent = info ? `${info.code} ${id}` : id;
                 if (info) {
                     badge.title = `${info.name} - #${info.relativeNumber}`;
                 }
@@ -382,7 +381,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const info = StickerParser.getStickerInfo(id);
                 const badge = document.createElement('span');
                 badge.className = 'match-sticker-badge';
-                badge.textContent = info ? `${info.flag} ${info.code} ${id}` : id;
+                badge.textContent = info ? `${info.code} ${id}` : id;
                 if (info) {
                     badge.title = `${info.name} - #${info.relativeNumber}`;
                 }
@@ -414,7 +413,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (giveArr.length > 0) {
             const giveFormatted = giveArr.map(id => {
                 const info = StickerParser.getStickerInfo(parseInt(id, 10));
-                return info ? `${info.flag} ${info.code} ${id}` : id;
+                return info ? `${info.code} ${id}` : id;
             });
             msg += `*Eu te dou* (${giveArr.length} itens):\n`;
             msg += `👉 ${giveFormatted.join(', ')}\n\n`;
@@ -425,7 +424,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (receiveArr.length > 0) {
             const receiveFormatted = receiveArr.map(id => {
                 const info = StickerParser.getStickerInfo(parseInt(id, 10));
-                return info ? `${info.flag} ${info.code} ${id}` : id;
+                return info ? `${info.code} ${id}` : id;
             });
             msg += `*Eu recebo de você* (${receiveArr.length} itens):\n`;
             msg += `👉 ${receiveFormatted.join(', ')}\n\n`;
