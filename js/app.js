@@ -11,13 +11,13 @@ document.addEventListener('DOMContentLoaded', () => {
             owned: new Set(),
             repeated: new Map()
         },
-        currentGroup: 'Intro',
+        currentGroup: 'FWC & CC',
         partnerState: null
     };
 
-    // Group definitions matching the 12 Copa groups plus Intro
+    // Group definitions matching the 12 Copa groups plus FWC & CC
     const GROUPS = [
-        { id: 'Intro', label: 'Intro' },
+        { id: 'FWC & CC', label: 'FWC & CC' },
         { id: 'Grupo A', label: 'Grupo A' },
         { id: 'Grupo B', label: 'Grupo B' },
         { id: 'Grupo C', label: 'Grupo C' },
@@ -168,29 +168,56 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderStickerGrid() {
         el.stickersGrid.innerHTML = '';
         
-        if (state.currentGroup === 'Intro') {
-            const section = document.createElement('div');
-            section.className = 'team-section';
+        if (state.currentGroup === 'FWC & CC') {
+            // 1. Render FWC section
+            const fwcSection = document.createElement('div');
+            fwcSection.className = 'team-section';
             
-            const header = document.createElement('div');
-            header.className = 'team-section-header';
-            header.innerHTML = `
-                <span class="team-flag">🏆</span>
-                <span class="team-code">FWC</span>
-                <span class="team-name">Intro & Estádios</span>
+            const fwcOwned = getOwnedCountInRange(1, 20);
+            const fwcHeader = document.createElement('div');
+            fwcHeader.className = 'team-section-header';
+            fwcHeader.innerHTML = `
+                <div class="team-header-left">
+                    <span class="badge-icon badge-fwc">⭐</span>
+                    <span class="team-name" style="font-family: var(--font-display); font-weight:800; font-size:15px;">FWC</span>
+                </div>
+                <span class="team-progress">${fwcOwned}/20</span>
             `;
             
-            const grid = document.createElement('div');
-            grid.className = 'stickers-grid';
-            
-            for (let i = 1; i <= 34; i++) {
-                const cell = createStickerCell(i);
-                grid.appendChild(cell);
+            const fwcGrid = document.createElement('div');
+            fwcGrid.className = 'stickers-grid';
+            for (let i = 1; i <= 20; i++) {
+                fwcGrid.appendChild(createStickerCell(i));
             }
             
-            section.appendChild(header);
-            section.appendChild(grid);
-            el.stickersGrid.appendChild(section);
+            fwcSection.appendChild(fwcHeader);
+            fwcSection.appendChild(fwcGrid);
+            el.stickersGrid.appendChild(fwcSection);
+
+            // 2. Render CC section
+            const ccSection = document.createElement('div');
+            ccSection.className = 'team-section';
+            
+            const ccOwned = getOwnedCountInRange(21, 34);
+            const ccHeader = document.createElement('div');
+            ccHeader.className = 'team-section-header';
+            ccHeader.innerHTML = `
+                <div class="team-header-left">
+                    <span class="badge-icon badge-cc">🥤</span>
+                    <span class="team-name" style="font-family: var(--font-display); font-weight:800; font-size:15px;">CC</span>
+                </div>
+                <span class="team-progress">${ccOwned}/14</span>
+            `;
+            
+            const ccGrid = document.createElement('div');
+            ccGrid.className = 'stickers-grid';
+            for (let i = 21; i <= 34; i++) {
+                ccGrid.appendChild(createStickerCell(i));
+            }
+            
+            ccSection.appendChild(ccHeader);
+            ccSection.appendChild(ccGrid);
+            el.stickersGrid.appendChild(ccSection);
         } else {
             const groupTeams = StickerParser.TEAMS.filter(t => t.group === state.currentGroup);
             
@@ -202,11 +229,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 const section = document.createElement('div');
                 section.className = 'team-section';
                 
+                const ownedCount = getOwnedCountInRange(start, end);
                 const header = document.createElement('div');
                 header.className = 'team-section-header';
                 header.innerHTML = `
-                    <span class="team-code">${team.code}</span>
-                    <span class="team-name">${team.name}</span>
+                    <div class="team-header-left">
+                        <span class="team-code">${team.code}</span>
+                        <span class="team-name">${team.name}</span>
+                    </div>
+                    <span class="team-progress">${ownedCount}/20</span>
                 `;
                 
                 const grid = document.createElement('div');
@@ -222,6 +253,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 el.stickersGrid.appendChild(section);
             });
         }
+    }
+
+    function getOwnedCountInRange(start, end) {
+        let count = 0;
+        for (let i = start; i <= end; i++) {
+            if (state.myAlbum.owned.has(i)) {
+                count++;
+            }
+        }
+        return count;
     }
 
     function createStickerCell(i) {
