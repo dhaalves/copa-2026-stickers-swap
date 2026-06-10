@@ -1,47 +1,25 @@
-# Plan: Foldable Scrollable Sticker Grid
+# Plan: Album Completion Percentage
 
-This plan removes the horizontal range selector tab buttons and displays all sticker sections (FWC, CC, and 48 countries) in a single continuous scrollable view. Each section will be collapsible/expandable by clicking its header.
+This plan adds a real-time percentage display (e.g., `45.8%`) next to the album completion counts in the top header panel.
 
 ---
 
 ## 🛠️ Proposed Changes
 
-### 1. [MODIFY] [index.html](file:///C:/Users/uel/.gemini/antigravity/scratch/copa-2026-stickers/index.html)
+### 1. [MODIFY] [app.js](file:///C:/Users/uel/.gemini/antigravity/scratch/copa-2026-stickers/js/app.js)
 * **Change**:
-  * Remove or comment out the `.range-selector` container (`#grid-range-selector`) to eliminate the tag pickers.
-  * Adjust instructions text slightly to align with the current interaction style.
-
-### 2. [MODIFY] [app.js](file:///C:/Users/uel/.gemini/antigravity/scratch/copa-2026-stickers/js/app.js)
-* **Change**:
-  * In `init()`:
-    * Remove the call to `renderRangeSelector()`.
-  * Remove the definition of `renderRangeSelector()`.
-  * Refactor `renderStickerGrid()`:
-    * Instead of conditionally rendering based on `state.currentGroup`, render FWC, CC, and all 48 country sections sequentially.
-    * For country sections, insert a visual `.group-title-divider` whenever the team's group (e.g., "Grupo A", "Grupo B") changes.
-    * Add custom `dataset.sectionId` attributes on `.team-section` elements.
-    * Append `.chevron-icon` to the header layout.
-    * Add click listeners to `.team-section-header` that toggles the `.collapsed` class on the parent `.team-section`.
-  * Add helper `updateSectionProgress(code)` to query and dynamically update progress numbers (e.g., `MEX 12/20`) when stickers are modified.
-  * Call `updateSectionProgress()` in `handleStickerClick()`, `handleIncrementClick()`, and `handleDecrementClick()`.
-
-### 3. [MODIFY] [style.css](file:///C:/Users/uel/.gemini/antigravity/scratch/copa-2026-stickers/style.css)
-* **Change**:
-  * Hide or remove unused range selector styling.
-  * Add cursor and hover styles to `.team-section-header`.
-  * Add styles for `.group-title-divider` to separate Copa groups with a premium look (sticky headers, sleek text).
-  * Add styles for `.chevron-icon` with rotation transition.
-  * Implement `.team-section.collapsed .stickers-grid` display toggling (and rotate chevron).
+  * In `updateMyAlbumUI()`:
+    * Change `el.statsCompletion.textContent` to include the calculated percentage formatted to one decimal place.
+    * Example output: `455 / 994 (45.8%)`.
 
 ---
 
 ## 🔍 Verification Plan
 
 ### Automated Tests
-- Run `node js/test_parser.js` and `node js/check_user_input.js` to ensure the core parser is unaffected.
+- Run tests (`node js/test_parser.js`) to verify parsing logic remains functional.
 
 ### Manual Verification
-- Open the app. The range selector tags should be gone.
-- Verify that FWC, CC, and all Groups A to L are rendered on the page.
-- Click a team header (e.g., FWC or RSA). The grid below it should collapse, and the chevron should rotate. Click it again to expand.
-- Toggle/edit sticker counts inside a section. Verify that both the section progress counter (e.g., `1/20`) and global completion counter in the header update immediately.
+- Open the application.
+- Tap a sticker cell.
+- Check that the album stat card updates its value to show the percentage dynamically (e.g., `1 / 994 (0.1%)`).

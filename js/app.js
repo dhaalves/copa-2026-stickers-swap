@@ -61,7 +61,10 @@ document.addEventListener('DOMContentLoaded', () => {
         importModalBackdrop: document.getElementById('import-modal-backdrop'),
         importCodeTextarea: document.getElementById('import-code-textarea'),
         btnModalCancel: document.getElementById('btn-modal-cancel'),
-        btnModalConfirm: document.getElementById('btn-modal-confirm')
+        btnModalConfirm: document.getElementById('btn-modal-confirm'),
+        searchInput: document.getElementById('sticker-search-input'),
+        btnUnfoldAll: document.getElementById('btn-unfold-all'),
+        btnFoldAll: document.getElementById('btn-fold-all')
     };
 
     /* ==========================================================================
@@ -148,10 +151,46 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderStickerGrid() {
         el.stickersGrid.innerHTML = '';
         
+        // Render Group title for FWC & CC
+        const fwcCcDivider = document.createElement('div');
+        fwcCcDivider.className = 'group-title-divider';
+        fwcCcDivider.dataset.group = 'FWC & CC';
+        
+        const fwcCcTitleText = document.createElement('span');
+        fwcCcTitleText.textContent = 'FWC & CC';
+        fwcCcDivider.appendChild(fwcCcTitleText);
+        
+        const fwcCcActions = document.createElement('div');
+        fwcCcActions.className = 'group-actions';
+        
+        const btnFwcCcUnfold = document.createElement('button');
+        btnFwcCcUnfold.className = 'group-action-btn btn-group-unfold';
+        btnFwcCcUnfold.textContent = '▼';
+        btnFwcCcUnfold.title = 'Expandir grupo';
+        btnFwcCcUnfold.addEventListener('click', (e) => {
+            e.stopPropagation();
+            expandGroupTeams('FWC & CC');
+        });
+        
+        const btnFwcCcFold = document.createElement('button');
+        btnFwcCcFold.className = 'group-action-btn btn-group-fold';
+        btnFwcCcFold.textContent = '▲';
+        btnFwcCcFold.title = 'Recolher grupo';
+        btnFwcCcFold.addEventListener('click', (e) => {
+            e.stopPropagation();
+            collapseGroupTeams('FWC & CC');
+        });
+        
+        fwcCcActions.appendChild(btnFwcCcUnfold);
+        fwcCcActions.appendChild(btnFwcCcFold);
+        fwcCcDivider.appendChild(fwcCcActions);
+        el.stickersGrid.appendChild(fwcCcDivider);
+        
         // 1. Render FWC section
         const fwcSection = document.createElement('div');
-        fwcSection.className = 'team-section';
+        fwcSection.className = 'team-section collapsed';
         fwcSection.dataset.sectionId = 'FWC';
+        fwcSection.dataset.searchKeywords = 'fwc fifa world cup fwc & cc';
         
         const fwcOwned = getOwnedCountInRange(1, 20);
         const fwcHeader = document.createElement('div');
@@ -184,8 +223,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // 2. Render CC section
         const ccSection = document.createElement('div');
-        ccSection.className = 'team-section';
+        ccSection.className = 'team-section collapsed';
         ccSection.dataset.sectionId = 'CC';
+        ccSection.dataset.searchKeywords = 'cc coca-cola fwc & cc';
         
         const ccOwned = getOwnedCountInRange(21, 34);
         const ccHeader = document.createElement('div');
@@ -228,13 +268,44 @@ document.addEventListener('DOMContentLoaded', () => {
                 lastGroup = team.group;
                 const groupTitle = document.createElement('div');
                 groupTitle.className = 'group-title-divider';
-                groupTitle.textContent = team.group;
+                groupTitle.dataset.group = team.group;
+                
+                const titleText = document.createElement('span');
+                titleText.textContent = team.group;
+                groupTitle.appendChild(titleText);
+                
+                const groupActions = document.createElement('div');
+                groupActions.className = 'group-actions';
+                
+                const btnGroupUnfold = document.createElement('button');
+                btnGroupUnfold.className = 'group-action-btn btn-group-unfold';
+                btnGroupUnfold.textContent = '▼';
+                btnGroupUnfold.title = 'Expandir grupo';
+                btnGroupUnfold.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    expandGroupTeams(team.group);
+                });
+                
+                const btnGroupFold = document.createElement('button');
+                btnGroupFold.className = 'group-action-btn btn-group-fold';
+                btnGroupFold.textContent = '▲';
+                btnGroupFold.title = 'Recolher grupo';
+                btnGroupFold.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    collapseGroupTeams(team.group);
+                });
+                
+                groupActions.appendChild(btnGroupUnfold);
+                groupActions.appendChild(btnGroupFold);
+                groupTitle.appendChild(groupActions);
+                
                 el.stickersGrid.appendChild(groupTitle);
             }
             
             const section = document.createElement('div');
-            section.className = 'team-section';
+            section.className = 'team-section collapsed';
             section.dataset.sectionId = team.code;
+            section.dataset.searchKeywords = `${team.code} ${team.name} ${team.group}`.toLowerCase();
             
             const ownedCount = getOwnedCountInRange(start, end);
             const header = document.createElement('div');
@@ -456,6 +527,36 @@ document.addEventListener('DOMContentLoaded', () => {
         progressEl.textContent = `${ownedCount}/${end - start + 1}`;
     }
 
+    function expandGroupTeams(groupName) {
+        if (groupName === 'FWC & CC') {
+            const fwc = document.querySelector('.team-section[data-section-id="FWC"]');
+            const cc = document.querySelector('.team-section[data-section-id="CC"]');
+            if (fwc) fwc.classList.remove('collapsed');
+            if (cc) cc.classList.remove('collapsed');
+        } else {
+            const groupTeams = StickerParser.TEAMS.filter(t => t.group === groupName);
+            groupTeams.forEach(team => {
+                const sect = document.querySelector(`.team-section[data-section-id="${team.code}"]`);
+                if (sect) sect.classList.remove('collapsed');
+            });
+        }
+    }
+
+    function collapseGroupTeams(groupName) {
+        if (groupName === 'FWC & CC') {
+            const fwc = document.querySelector('.team-section[data-section-id="FWC"]');
+            const cc = document.querySelector('.team-section[data-section-id="CC"]');
+            if (fwc) fwc.classList.add('collapsed');
+            if (cc) cc.classList.add('collapsed');
+        } else {
+            const groupTeams = StickerParser.TEAMS.filter(t => t.group === groupName);
+            groupTeams.forEach(team => {
+                const sect = document.querySelector(`.team-section[data-section-id="${team.code}"]`);
+                if (sect) sect.classList.add('collapsed');
+            });
+        }
+    }
+
     function addBadge(element, qty) {
         const badge = document.createElement('span');
         badge.className = 'sticker-badge';
@@ -474,8 +575,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // Update Header stats
-        el.statsCompletion.textContent = `${ownedCount} / ${total}`;
         const percentage = (ownedCount / total) * 100;
+        el.statsCompletion.textContent = `${ownedCount} / ${total} (${percentage.toFixed(1)}%)`;
         el.statsProgressFill.style.width = `${percentage}%`;
         el.statsRepeated.textContent = repeatedCount;
 
@@ -676,6 +777,77 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Share Whatsapp
         el.btnShareWhatsapp.addEventListener('click', shareTradeOnWhatsapp);
+
+        // Global Unfold/Fold
+        el.btnUnfoldAll.addEventListener('click', () => {
+            document.querySelectorAll('.team-section').forEach(sect => {
+                sect.classList.remove('collapsed');
+            });
+        });
+
+        el.btnFoldAll.addEventListener('click', () => {
+            document.querySelectorAll('.team-section').forEach(sect => {
+                sect.classList.add('collapsed');
+            });
+        });
+
+        // Search Filter logic
+        el.searchInput.addEventListener('input', () => {
+            const query = el.searchInput.value.trim().toLowerCase();
+            
+            if (query === '') {
+                // Restore default: show everything but collapsed
+                document.querySelectorAll('.team-section').forEach(sect => {
+                    sect.classList.remove('hidden');
+                    sect.classList.add('collapsed');
+                });
+                document.querySelectorAll('.group-title-divider').forEach(div => {
+                    div.classList.remove('hidden');
+                });
+                return;
+            }
+
+            // Otherwise, filter
+            // 1. Check sections
+            document.querySelectorAll('.team-section').forEach(sect => {
+                const keywords = sect.dataset.searchKeywords || '';
+                if (keywords.includes(query)) {
+                    sect.classList.remove('hidden');
+                    sect.classList.remove('collapsed'); // auto unfold search results
+                } else {
+                    sect.classList.add('hidden');
+                }
+            });
+
+            // 2. Filter group dividers: only show if at least one of their sections is visible
+            document.querySelectorAll('.group-title-divider').forEach(divider => {
+                const groupName = divider.dataset.group;
+                let hasVisibleTeam = false;
+                
+                if (groupName === 'FWC & CC') {
+                    const fwc = document.querySelector('.team-section[data-section-id="FWC"]');
+                    const cc = document.querySelector('.team-section[data-section-id="CC"]');
+                    if ((fwc && !fwc.classList.contains('hidden')) || (cc && !cc.classList.contains('hidden'))) {
+                        hasVisibleTeam = true;
+                    }
+                } else {
+                    const groupTeams = StickerParser.TEAMS.filter(t => t.group === groupName);
+                    for (const team of groupTeams) {
+                        const sect = document.querySelector(`.team-section[data-section-id="${team.code}"]`);
+                        if (sect && !sect.classList.contains('hidden')) {
+                            hasVisibleTeam = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (hasVisibleTeam) {
+                    divider.classList.remove('hidden');
+                } else {
+                    divider.classList.add('hidden');
+                }
+            });
+        });
     }
 
     function switchTab(sectionId) {
