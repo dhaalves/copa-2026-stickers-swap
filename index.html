@@ -1,16 +1,21 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Copa Match 2026 - Troca de Figurinhas</title>
-    <meta name="description" content="Aplicativo mobile-first minimalista e moderno para matching de figurinhas do álbum da Copa de 2026. Compare e compartilhe trocas facilmente.">
+    <meta name="description"
+        content="Aplicativo mobile-first minimalista e moderno para matching de figurinhas do álbum da Copa de 2026. Compare e compartilhe trocas facilmente.">
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
+
 <body class="dark-theme">
     <div class="app-container">
         <!-- Header -->
@@ -18,11 +23,11 @@
             <div class="brand">
                 <div class="logo-icon">⚽</div>
                 <div>
-                    <h1 id="app-title">Copa Match 26</h1>
-                    <p class="subtitle">Organizador & Troca de Figurinhas</p>
+                    <h1 id="app-title">Stickers Swap 26</h1>
+                    <p class="subtitle">Organize & Troque Figurinhas</p>
                 </div>
             </div>
-            
+
             <!-- Quick Stats -->
             <div class="header-stats" id="header-stats-container">
                 <div class="stat-card">
@@ -51,14 +56,15 @@
 
         <!-- Main Content -->
         <main class="app-content">
-            
+
             <!-- Section A: My Album -->
             <section class="tab-section active" id="section-my-album">
                 <!-- Code Input/Output Panel -->
                 <div class="card code-panel">
                     <div class="card-header">
                         <h2>Meu Código de Compartilhamento</h2>
-                        <span class="tooltip-trigger" title="Este código representa o estado do seu álbum (figurinhas coladas e repetidas).">ℹ️</span>
+                        <span class="tooltip-trigger"
+                            title="Este código representa o estado do seu álbum (figurinhas coladas e repetidas).">ℹ️</span>
                     </div>
                     <div class="code-actions">
                         <textarea id="my-code-textarea" placeholder="Nenhum código gerado..." readonly></textarea>
@@ -79,14 +85,15 @@
                             <span class="legend-item"><span class="legend-dot repeated"></span>Repetida</span>
                         </div>
                     </div>
-                    
+
                     <!-- Sticker range selector (Tabs) -->
                     <div class="range-selector" id="grid-range-selector">
                         <!-- Javascript will inject range buttons: 1-100, 101-200, ... -->
                     </div>
 
                     <div class="grid-instructions">
-                        <p>Toque em uma figurinha para mudar o estado: <strong>Falta ➔ Tenho ➔ Repetida (+1) ➔ Zerar</strong></p>
+                        <p>Toque em uma figurinha para mudar o estado: <strong>Falta ➔ Tenho ➔ Repetida (+1) ➔
+                                Zerar</strong></p>
                     </div>
 
                     <!-- Sticker Grid -->
@@ -102,7 +109,8 @@
                 <div class="card matching-input-panel">
                     <h2>Inserir Código do Parceiro</h2>
                     <p class="section-desc">Cole o código que seu parceiro de troca copiou do app dele:</p>
-                    <textarea id="partner-code-textarea" placeholder="Cole o código do parceiro aqui (ex: SA26|1|4,21,24-27|24:1...)"></textarea>
+                    <textarea id="partner-code-textarea"
+                        placeholder="Cole o código do parceiro aqui (ex: SA26|1|4,21,24-27|24:1...)"></textarea>
                     <button id="btn-calculate-match" class="btn btn-primary btn-block">Comparar Álbuns</button>
                 </div>
 
@@ -176,4 +184,5 @@
     <script src="js/parser.js"></script>
     <script src="js/app.js"></script>
 </body>
+
 </html>
