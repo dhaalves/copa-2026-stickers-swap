@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Copa Match 2026 - Troca de Figurinhas</title>
+    <meta name="description" content="Aplicativo mobile-first minimalista e moderno para matching de figurinhas do álbum da Copa de 2026. Compare e compartilhe trocas facilmente.">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="dark-theme">
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="brand">
+                <div class="logo-icon">⚽</div>
+                <div>
+                    <h1 id="app-title">Copa Match 26</h1>
+                    <p class="subtitle">Organizador & Troca de Figurinhas</p>
+                </div>
+            </div>
+            
+            <!-- Quick Stats -->
+            <div class="header-stats" id="header-stats-container">
+                <div class="stat-card">
+                    <span class="stat-label">Álbum</span>
+                    <span class="stat-value" id="stats-completion">0 / 994</span>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar-fill" id="stats-progress-fill" style="width: 0%"></div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">Repetidas</span>
+                    <span class="stat-value" id="stats-repeated">0</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Navigation Tabs -->
+        <nav class="main-tabs" id="main-nav-tabs">
+            <button class="tab-btn active" id="tab-trigger-my-album" data-target="section-my-album">
+                <span>🎴 Meu Álbum</span>
+            </button>
+            <button class="tab-btn" id="tab-trigger-matching" data-target="section-matching">
+                <span>🔄 Comparar & Trocar</span>
+            </button>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="app-content">
+            
+            <!-- Section A: My Album -->
+            <section class="tab-section active" id="section-my-album">
+                <!-- Code Input/Output Panel -->
+                <div class="card code-panel">
+                    <div class="card-header">
+                        <h2>Meu Código de Compartilhamento</h2>
+                        <span class="tooltip-trigger" title="Este código representa o estado do seu álbum (figurinhas coladas e repetidas).">ℹ️</span>
+                    </div>
+                    <div class="code-actions">
+                        <textarea id="my-code-textarea" placeholder="Nenhum código gerado..." readonly></textarea>
+                        <div class="button-group">
+                            <button id="btn-copy-my-code" class="btn btn-secondary">Copiar Código</button>
+                            <button id="btn-import-my-code" class="btn btn-outline">Importar</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sticker Grid Panel -->
+                <div class="card grid-panel">
+                    <div class="card-header grid-header">
+                        <h2>Marcar Figurinhas</h2>
+                        <div class="grid-legend">
+                            <span class="legend-item"><span class="legend-dot empty"></span>Falta</span>
+                            <span class="legend-item"><span class="legend-dot owned"></span>Tenho</span>
+                            <span class="legend-item"><span class="legend-dot repeated"></span>Repetida</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Sticker range selector (Tabs) -->
+                    <div class="range-selector" id="grid-range-selector">
+                        <!-- Javascript will inject range buttons: 1-100, 101-200, ... -->
+                    </div>
+
+                    <div class="grid-instructions">
+                        <p>Toque em uma figurinha para mudar o estado: <strong>Falta ➔ Tenho ➔ Repetida (+1) ➔ Zerar</strong></p>
+                    </div>
+
+                    <!-- Sticker Grid -->
+                    <div class="stickers-grid" id="stickers-grid-container">
+                        <!-- Javascript will inject 100 sticker cells at a time here -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section B: Matching -->
+            <section class="tab-section" id="section-matching">
+                <!-- Partner Input Panel -->
+                <div class="card matching-input-panel">
+                    <h2>Inserir Código do Parceiro</h2>
+                    <p class="section-desc">Cole o código que seu parceiro de troca copiou do app dele:</p>
+                    <textarea id="partner-code-textarea" placeholder="Cole o código do parceiro aqui (ex: SA26|1|4,21,24-27|24:1...)"></textarea>
+                    <button id="btn-calculate-match" class="btn btn-primary btn-block">Comparar Álbuns</button>
+                </div>
+
+                <!-- Match Results Panel (Hidden by default, shown when match calculated) -->
+                <div class="card match-results-card hidden" id="match-results-panel">
+                    <div class="match-results-header">
+                        <div class="match-success-icon">🤝</div>
+                        <div>
+                            <h2 id="match-summary-title">Combinações Encontradas!</h2>
+                            <p id="match-summary-subtitle">Vocês podem trocar 0 figurinhas</p>
+                        </div>
+                    </div>
+
+                    <div class="match-details-grid">
+                        <!-- You Give -->
+                        <div class="match-col">
+                            <h3>Figurinhas que VOCÊ DÁ ({{give_count}})</h3>
+                            <p class="col-desc">Repetidas suas que ele não tem:</p>
+                            <div class="match-stickers-list" id="match-give-list">
+                                <!-- list of sticker badges -->
+                            </div>
+                        </div>
+
+                        <!-- You Receive -->
+                        <div class="match-col">
+                            <h3>Figurinhas que VOCÊ RECEBE ({{receive_count}})</h3>
+                            <p class="col-desc">Repetidas dele que você não tem:</p>
+                            <div class="match-stickers-list" id="match-receive-list">
+                                <!-- list of sticker badges -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- WhatsApp Sharing Button -->
+                    <button id="btn-share-whatsapp" class="btn btn-whatsapp btn-block">
+                        <span>💬 Compartilhar Troca no WhatsApp</span>
+                    </button>
+                </div>
+
+                <!-- No Match / Empty State Panel -->
+                <div class="card empty-match-card" id="match-empty-panel">
+                    <div class="empty-state-icon">🔍</div>
+                    <h3>Nenhuma comparação feita ainda</h3>
+                    <p>Cole o código de outro colecionador acima para descobrir quais figurinhas vocês podem trocar.</p>
+                </div>
+            </section>
+
+        </main>
+
+        <!-- Modal Dialog for Importing Code -->
+        <div class="modal-backdrop hidden" id="import-modal-backdrop">
+            <div class="modal-card">
+                <h3>Importar Código do Álbum</h3>
+                <p>Cole o seu código de compartilhamento abaixo para restaurar o estado do seu álbum:</p>
+                <textarea id="import-code-textarea" placeholder="Cole seu código aqui..."></textarea>
+                <div class="modal-actions">
+                    <button id="btn-modal-cancel" class="btn btn-outline">Cancelar</button>
+                    <button id="btn-modal-confirm" class="btn btn-primary">Importar</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="app-footer">
+            <p><strong>Copa Match 2026</strong> - Aplicativo Local & Privado</p>
+            <p>Seus dados são armazenados localmente no seu aparelho.</p>
+        </footer>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/parser.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
