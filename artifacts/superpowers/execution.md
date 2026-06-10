@@ -93,3 +93,15 @@ This log documents the step-by-step progress, code edits, and verification comma
 - **Verification**:
   - Checked that headers show only 3-letter codes and names (e.g., `CZE República Tcheca`) and badges show only codes (e.g. `CZE 35`).
 - **Status**: Completed successfully. ✅
+
+---
+
+## 🥤 Step 11: FWC & CC Sections Split
+- **Action**:
+  - Split the 34 initial stickers under tab "FWC & CC" (formerly "Intro") into two separate sections: FWC (20 stickers: 00 to 19) and CC (14 stickers: 1 to 14) in `js/parser.js` and `js/app.js`.
+  - Created custom logo badges for headers: orange with white star `⭐` for FWC and red with soda bottle `🥤` for CC, matching the user's attachment.
+  - Implemented dynamic live progress trackers (`owned_count/total`) in the header right-side for FWC, CC, and all 48 country cards.
+- **Verification**:
+  - Ran `node js/test_parser.js` to verify FWC (`00`, `19` boundary) and CC (`1`, `14` boundary) relative mapping boundaries.
+  - Verified UI rendering and progress tracking updates correctly.
+- **Status**: Completed successfully. ✅
