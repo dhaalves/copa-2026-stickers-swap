@@ -1,23 +1,25 @@
-# Brainstorm: Unlimited Repeated Stickers and In-Cell Controls
+# Brainstorm: Foldable Grid Advanced Navigation (Search, Default Fold, Group Controls)
 
 ## 🎯 Goal
-Allow users to have an unlimited number of repeated stickers (removing the hard cap of +3) and introduce intuitive increment/decrement control regions directly inside the sticker cells.
+Implement advanced navigation features for the scrollable sticker list:
+1. Start all sections folded (collapsed) by default on load.
+2. Add a visual search bar to filter country sections by name or code (matching sections display, non-matching hide; matching sections auto-expand).
+3. Add global controls to "Expand All" (Expandir Tudo) and "Collapse All" (Recolher Tudo).
+4. Add group-level controls on each group header (e.g. "Grupo A") to expand or collapse only the country cards within that group.
 
 ## ⚙️ Constraints
-- Keep sticker cells mobile-friendly (approx. 80px width).
-- Hide the control regions when the sticker is not owned to prevent visual clutter.
-- Maintain full compatibility with the existing parsing and URL compression format `SA26|1|owned_ranges|repeated_quantities` (which already natively supports repeated counts > 3).
-- Must prevent button clicks from bubbling up to the main cell click handler to avoid toggling states accidentally.
+- Keep page speed and filter response instantaneous.
+- Fit search inputs and buttons inside the existing `480px` mobile container frame cleanly without crowding.
+- Maintain compatibility with dynamic progress updates when stickers inside collapsed/expanded cards are modified.
 
 ## ⚠️ Risks & Considerations
-- **Touch Target Sizes**: In a tight 5-column grid (approx. 80px cell width), putting two buttons at the bottom of the cell leaves less space for clicking the center to toggle ownership. We must position them at the bottom corners and style them distinctly.
-- **Click Bubbling**: Tapping the `+` or `-` buttons must use `event.stopPropagation()` to prevent triggering the main cell's toggle-ownership handler.
-- **Visual Clutter**: Showing controls on all 994 stickers would be visually overwhelming. We will only display controls on hover (desktop) or when the sticker is owned/repeated (mobile/desktop).
+- **Layout shift**: Showing/hiding sections during filtering must be smooth.
+- **Search Auto-Expand**: When filtering, matching sections should expand automatically so the user can immediately interact with the sticker cells. When search is cleared, we should restore a clean state (either keep current fold state or collapse everything). Let's collapse everything when the search is cleared to return to the clean default state!
+- **Selector Bubbling**: Event listeners on the group divider header buttons must not conflict or cause issues. We should bind specific actions to the group unfold/fold buttons.
 
 ## ✅ Acceptance Criteria
-1. Clicking the sticker cell main area toggles ownership (Missing <-> Owned).
-2. Once owned, a controls area with `-` and `+` buttons appears at the bottom of the cell.
-3. Clicking the `+` button increments the repeated count indefinitely (no limit like +3).
-4. Clicking the `-` button decrements the repeated count. If the count reaches 0, the repeated badge disappears and the sticker returns to the plain "Owned" state.
-5. Clicking the `-` button on an "Owned" sticker (repeated count is 0) marks the sticker as "Missing".
-6. All existing unit tests and parser functionality continue to pass successfully.
+1. On initial page load, all 50 country/sticker sections are collapsed (folded).
+2. A search input is displayed at the top of the stickers panel. Typing a query (e.g. "BRA" or "Brasil" or "Grupo C") hides non-matching sections and displays matching ones.
+3. Matching sections during search are automatically expanded (unfolded). Clearing search collapses everything back to the default state.
+4. Two global buttons "Expandir Tudo" and "Recolher Tudo" are visible and function correctly.
+5. Each group header divider displays inline small actions "Expandir" and "Recolher" that control only the country sections inside that specific group.

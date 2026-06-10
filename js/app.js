@@ -69,22 +69,19 @@ document.addEventListener('DOMContentLoaded', () => {
        ========================================================================== */
 
     function init() {
-        // 1. Generate range buttons
-        renderRangeSelector();
-
-        // 2. Load my album state from localStorage or initialize
+        // 1. Load my album state from localStorage or initialize
         loadMyAlbumFromStorage();
 
-        // 3. Render grid for the first range
+        // 2. Render all sticker grids
         renderStickerGrid();
 
-        // 4. Update Header and Share textareas
+        // 3. Update Header and Share textareas
         updateMyAlbumUI();
 
-        // 5. Setup event listeners
+        // 4. Setup event listeners
         bindEvents();
 
-        // 6. Check URL query params for shared partner codes
+        // 5. Check URL query params for shared partner codes
         checkQueryParams();
     }
 
@@ -148,111 +145,128 @@ document.addEventListener('DOMContentLoaded', () => {
        UI RENDERING
        ========================================================================== */
 
-    function renderRangeSelector() {
-        el.gridRangeSelector.innerHTML = '';
-        GROUPS.forEach(group => {
-            const btn = document.createElement('button');
-            btn.className = `range-btn ${group.id === state.currentGroup ? 'active' : ''}`;
-            btn.textContent = group.label;
-            btn.dataset.group = group.id;
-            btn.addEventListener('click', () => {
-                document.querySelectorAll('.range-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                state.currentGroup = group.id;
-                renderStickerGrid();
-            });
-            el.gridRangeSelector.appendChild(btn);
-        });
-    }
-
     function renderStickerGrid() {
         el.stickersGrid.innerHTML = '';
         
-        if (state.currentGroup === 'FWC & CC') {
-            // 1. Render FWC section
-            const fwcSection = document.createElement('div');
-            fwcSection.className = 'team-section';
-            
-            const fwcOwned = getOwnedCountInRange(1, 20);
-            const fwcHeader = document.createElement('div');
-            fwcHeader.className = 'team-section-header';
-            fwcHeader.innerHTML = `
-                <div class="team-header-left">
-                    <span class="badge-icon badge-fwc">⭐</span>
-                    <span class="team-name" style="font-family: var(--font-display); font-weight:800; font-size:15px;">FWC</span>
-                </div>
+        // 1. Render FWC section
+        const fwcSection = document.createElement('div');
+        fwcSection.className = 'team-section';
+        fwcSection.dataset.sectionId = 'FWC';
+        
+        const fwcOwned = getOwnedCountInRange(1, 20);
+        const fwcHeader = document.createElement('div');
+        fwcHeader.className = 'team-section-header';
+        fwcHeader.innerHTML = `
+            <div class="team-header-left">
+                <span class="badge-icon badge-fwc">⭐</span>
+                <span class="team-name" style="font-family: var(--font-display); font-weight:800; font-size:15px;">FWC</span>
+            </div>
+            <div class="team-header-right">
                 <span class="team-progress">${fwcOwned}/20</span>
-            `;
-            
-            const fwcGrid = document.createElement('div');
-            fwcGrid.className = 'stickers-grid';
-            for (let i = 1; i <= 20; i++) {
-                fwcGrid.appendChild(createStickerCell(i));
-            }
-            
-            fwcSection.appendChild(fwcHeader);
-            fwcSection.appendChild(fwcGrid);
-            el.stickersGrid.appendChild(fwcSection);
-
-            // 2. Render CC section
-            const ccSection = document.createElement('div');
-            ccSection.className = 'team-section';
-            
-            const ccOwned = getOwnedCountInRange(21, 34);
-            const ccHeader = document.createElement('div');
-            ccHeader.className = 'team-section-header';
-            ccHeader.innerHTML = `
-                <div class="team-header-left">
-                    <span class="badge-icon badge-cc">🥤</span>
-                    <span class="team-name" style="font-family: var(--font-display); font-weight:800; font-size:15px;">CC</span>
-                </div>
-                <span class="team-progress">${ccOwned}/14</span>
-            `;
-            
-            const ccGrid = document.createElement('div');
-            ccGrid.className = 'stickers-grid';
-            for (let i = 21; i <= 34; i++) {
-                ccGrid.appendChild(createStickerCell(i));
-            }
-            
-            ccSection.appendChild(ccHeader);
-            ccSection.appendChild(ccGrid);
-            el.stickersGrid.appendChild(ccSection);
-        } else {
-            const groupTeams = StickerParser.TEAMS.filter(t => t.group === state.currentGroup);
-            
-            groupTeams.forEach(team => {
-                const teamIdx = StickerParser.TEAMS.indexOf(team);
-                const start = 35 + teamIdx * 20;
-                const end = start + 19;
-                
-                const section = document.createElement('div');
-                section.className = 'team-section';
-                
-                const ownedCount = getOwnedCountInRange(start, end);
-                const header = document.createElement('div');
-                header.className = 'team-section-header';
-                header.innerHTML = `
-                    <div class="team-header-left">
-                        <span class="team-code">${team.code}</span>
-                        <span class="team-name">${team.name}</span>
-                    </div>
-                    <span class="team-progress">${ownedCount}/20</span>
-                `;
-                
-                const grid = document.createElement('div');
-                grid.className = 'stickers-grid';
-                
-                for (let i = start; i <= end; i++) {
-                    const cell = createStickerCell(i);
-                    grid.appendChild(cell);
-                }
-                
-                section.appendChild(header);
-                section.appendChild(grid);
-                el.stickersGrid.appendChild(section);
-            });
+                <span class="chevron-icon">▼</span>
+            </div>
+        `;
+        
+        const fwcGrid = document.createElement('div');
+        fwcGrid.className = 'stickers-grid';
+        for (let i = 1; i <= 20; i++) {
+            fwcGrid.appendChild(createStickerCell(i));
         }
+        
+        fwcSection.appendChild(fwcHeader);
+        fwcSection.appendChild(fwcGrid);
+        
+        fwcHeader.addEventListener('click', () => {
+            fwcSection.classList.toggle('collapsed');
+        });
+        
+        el.stickersGrid.appendChild(fwcSection);
+
+        // 2. Render CC section
+        const ccSection = document.createElement('div');
+        ccSection.className = 'team-section';
+        ccSection.dataset.sectionId = 'CC';
+        
+        const ccOwned = getOwnedCountInRange(21, 34);
+        const ccHeader = document.createElement('div');
+        ccHeader.className = 'team-section-header';
+        ccHeader.innerHTML = `
+            <div class="team-header-left">
+                <span class="badge-icon badge-cc">🥤</span>
+                <span class="team-name" style="font-family: var(--font-display); font-weight:800; font-size:15px;">CC</span>
+            </div>
+            <div class="team-header-right">
+                <span class="team-progress">${ccOwned}/14</span>
+                <span class="chevron-icon">▼</span>
+            </div>
+        `;
+        
+        const ccGrid = document.createElement('div');
+        ccGrid.className = 'stickers-grid';
+        for (let i = 21; i <= 34; i++) {
+            ccGrid.appendChild(createStickerCell(i));
+        }
+        
+        ccSection.appendChild(ccHeader);
+        ccSection.appendChild(ccGrid);
+        
+        ccHeader.addEventListener('click', () => {
+            ccSection.classList.toggle('collapsed');
+        });
+        
+        el.stickersGrid.appendChild(ccSection);
+
+        // 3. Render all Group A to L Teams
+        let lastGroup = null;
+        StickerParser.TEAMS.forEach(team => {
+            const teamIdx = StickerParser.TEAMS.indexOf(team);
+            const start = 35 + teamIdx * 20;
+            const end = start + 19;
+            
+            // Insert Group title if it changed
+            if (team.group !== lastGroup) {
+                lastGroup = team.group;
+                const groupTitle = document.createElement('div');
+                groupTitle.className = 'group-title-divider';
+                groupTitle.textContent = team.group;
+                el.stickersGrid.appendChild(groupTitle);
+            }
+            
+            const section = document.createElement('div');
+            section.className = 'team-section';
+            section.dataset.sectionId = team.code;
+            
+            const ownedCount = getOwnedCountInRange(start, end);
+            const header = document.createElement('div');
+            header.className = 'team-section-header';
+            header.innerHTML = `
+                <div class="team-header-left">
+                    <span class="team-code">${team.code}</span>
+                    <span class="team-name">${team.name}</span>
+                </div>
+                <div class="team-header-right">
+                    <span class="team-progress">${ownedCount}/20</span>
+                    <span class="chevron-icon">▼</span>
+                </div>
+            `;
+            
+            const grid = document.createElement('div');
+            grid.className = 'stickers-grid';
+            
+            for (let i = start; i <= end; i++) {
+                const cell = createStickerCell(i);
+                grid.appendChild(cell);
+            }
+            
+            section.appendChild(header);
+            section.appendChild(grid);
+            
+            header.addEventListener('click', () => {
+                section.classList.toggle('collapsed');
+            });
+            
+            el.stickersGrid.appendChild(section);
+        });
     }
 
     function getOwnedCountInRange(start, end) {
@@ -346,6 +360,11 @@ document.addEventListener('DOMContentLoaded', () => {
         // Save and Update UI
         saveMyAlbumToStorage();
         updateMyAlbumUI();
+        
+        const info = StickerParser.getStickerInfo(id);
+        if (info) {
+            updateSectionProgress(info.code);
+        }
     }
 
     function handleIncrementClick(id, cellElement) {
@@ -370,6 +389,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         saveMyAlbumToStorage();
         updateMyAlbumUI();
+
+        const info = StickerParser.getStickerInfo(id);
+        if (info) {
+            updateSectionProgress(info.code);
+        }
     }
 
     function handleDecrementClick(id, cellElement) {
@@ -400,6 +424,36 @@ document.addEventListener('DOMContentLoaded', () => {
 
         saveMyAlbumToStorage();
         updateMyAlbumUI();
+
+        const info = StickerParser.getStickerInfo(id);
+        if (info) {
+            updateSectionProgress(info.code);
+        }
+    }
+
+    function updateSectionProgress(code) {
+        const sectionEl = document.querySelector(`.team-section[data-section-id="${code}"]`);
+        if (!sectionEl) return;
+        
+        const progressEl = sectionEl.querySelector('.team-progress');
+        if (!progressEl) return;
+
+        let start, end;
+        if (code === 'FWC') {
+            start = 1;
+            end = 20;
+        } else if (code === 'CC') {
+            start = 21;
+            end = 34;
+        } else {
+            const team = StickerParser.TEAMS.find(t => t.code === code);
+            const teamIdx = StickerParser.TEAMS.indexOf(team);
+            start = 35 + teamIdx * 20;
+            end = start + 19;
+        }
+
+        const ownedCount = getOwnedCountInRange(start, end);
+        progressEl.textContent = `${ownedCount}/${end - start + 1}`;
     }
 
     function addBadge(element, qty) {

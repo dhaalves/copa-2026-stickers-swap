@@ -1,42 +1,47 @@
-# Plan: Unlimited Repeated Stickers & In-Cell Controls
+# Plan: Foldable Scrollable Sticker Grid
 
-This plan adds in-cell `+` and `-` controls to sticker cells when owned/repeated, allowing users to increment repeated sticker counts indefinitely and decrement them back to owned/missing states without a limit.
+This plan removes the horizontal range selector tab buttons and displays all sticker sections (FWC, CC, and 48 countries) in a single continuous scrollable view. Each section will be collapsible/expandable by clicking its header.
 
 ---
 
 ## 🛠️ Proposed Changes
 
-### 1. [MODIFY] [app.js](file:///C:/Users/uel/.gemini/antigravity/scratch/copa-2026-stickers/js/app.js)
+### 1. [MODIFY] [index.html](file:///C:/Users/uel/.gemini/antigravity/scratch/copa-2026-stickers/index.html)
 * **Change**:
-  * In `createStickerCell(i)`:
-    * Wrap the relative number text in a `span` with class `.sticker-label`.
-    * Create and append a `.cell-controls` container at the bottom of the cell.
-    * Add `-` (`.btn-dec`) and `+` (`.btn-inc`) buttons inside `.cell-controls`.
-    * Set click event listeners on the buttons, calling `stopPropagation()` to prevent triggering the cell's main click handler.
-  * In `handleStickerClick(id, cellElement)`:
-    * Simplify to only toggle between Owned and Missing. If it becomes Missing, clear all ownership and repeated states for that sticker ID.
-  * Add helper functions:
-    * `handleIncrementClick(id, cellElement)`: Increments the repeated quantity, marks as repeated, adds/updates the badge, and saves.
-    * `handleDecrementClick(id, cellElement)`: Decrements the repeated quantity. If it reaches 0, it removes the badge and switches back to the plain "Owned" state. If decremented again from 0, it marks the sticker as "Missing".
+  * Remove or comment out the `.range-selector` container (`#grid-range-selector`) to eliminate the tag pickers.
+  * Adjust instructions text slightly to align with the current interaction style.
 
-### 2. [MODIFY] [style.css](file:///C:/Users/uel/.gemini/antigravity/scratch/copa-2026-stickers/style.css)
+### 2. [MODIFY] [app.js](file:///C:/Users/uel/.gemini/antigravity/scratch/copa-2026-stickers/js/app.js)
 * **Change**:
-  * Style `.cell-controls` to absolute position at the bottom of `.sticker-cell`.
-  * Make `.cell-controls` visible only when the parent cell has the `.owned` or `.repeated` class.
-  * Style `.control-btn` as small, readable buttons with hover and active states (using red tones for `-` and emerald/amber tones for `+` on hover).
-  * Align the sticker label center-vertically slightly offset upwards to accommodate the bottom controls.
+  * In `init()`:
+    * Remove the call to `renderRangeSelector()`.
+  * Remove the definition of `renderRangeSelector()`.
+  * Refactor `renderStickerGrid()`:
+    * Instead of conditionally rendering based on `state.currentGroup`, render FWC, CC, and all 48 country sections sequentially.
+    * For country sections, insert a visual `.group-title-divider` whenever the team's group (e.g., "Grupo A", "Grupo B") changes.
+    * Add custom `dataset.sectionId` attributes on `.team-section` elements.
+    * Append `.chevron-icon` to the header layout.
+    * Add click listeners to `.team-section-header` that toggles the `.collapsed` class on the parent `.team-section`.
+  * Add helper `updateSectionProgress(code)` to query and dynamically update progress numbers (e.g., `MEX 12/20`) when stickers are modified.
+  * Call `updateSectionProgress()` in `handleStickerClick()`, `handleIncrementClick()`, and `handleDecrementClick()`.
+
+### 3. [MODIFY] [style.css](file:///C:/Users/uel/.gemini/antigravity/scratch/copa-2026-stickers/style.css)
+* **Change**:
+  * Hide or remove unused range selector styling.
+  * Add cursor and hover styles to `.team-section-header`.
+  * Add styles for `.group-title-divider` to separate Copa groups with a premium look (sticky headers, sleek text).
+  * Add styles for `.chevron-icon` with rotation transition.
+  * Implement `.team-section.collapsed .stickers-grid` display toggling (and rotate chevron).
 
 ---
 
 ## 🔍 Verification Plan
 
 ### Automated Tests
-- Run `node js/test_parser.js` to verify that existing parser and matcher functions behave correctly.
-- Run `node js/check_user_input.js` to ensure the parser handles complex and large inputs.
+- Run `node js/test_parser.js` and `node js/check_user_input.js` to ensure the core parser is unaffected.
 
 ### Manual Verification
-- Launch the application and click a sticker to mark it as owned. Verify the `-` and `+` buttons appear.
-- Click the `+` button multiple times. Verify that the repeated count increases beyond `+3` (e.g., `+4`, `+5`, `+6`).
-- Click the `-` button to decrement the count. Check that the badge updates correctly.
-- Click `-` when the badge is gone (quantity = 0) and verify that the sticker reverts to the "Missing" state.
-- Click the main area of the cell to toggle its owned state directly.
+- Open the app. The range selector tags should be gone.
+- Verify that FWC, CC, and all Groups A to L are rendered on the page.
+- Click a team header (e.g., FWC or RSA). The grid below it should collapse, and the chevron should rotate. Click it again to expand.
+- Toggle/edit sticker counts inside a section. Verify that both the section progress counter (e.g., `1/20`) and global completion counter in the header update immediately.
