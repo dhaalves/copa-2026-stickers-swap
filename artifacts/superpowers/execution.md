@@ -63,3 +63,15 @@ This log documents the step-by-step progress, code edits, and verification comma
   - Ran `node js/test_parser.js` to verify boundary checks and mappings (e.g. sticker 1 ➔ Intro FWC, sticker 35 ➔ USA, sticker 994 ➔ UZB).
   - Ran `node js/check_user_input.js` to verify compatibility with user string.
 - **Status**: Completed successfully. ✅
+
+---
+
+## 🛠️ Step 8: Layout Fix & Official Groups Alignment
+- **Action**:
+  - Fixed parent grid layout by changing `#stickers-grid-container` class to `stickers-container` in `index.html`.
+  - Added `display: flex; flex-direction: column; gap: 16px` to `.stickers-container` in `style.css` to stack country grids vertically and prevent horizontal overflow/squishing.
+  - Updated the database of teams in `js/parser.js` to align with the official 2026 World Cup draw groups (e.g., Group A: México, South Africa, South Korea, Repescagem D; Group C: Brazil, Morocco, Scotland, Haiti, etc.).
+- **Verification**:
+  - Ran `node js/test_parser.js` and confirmed all assertions pass for the new draw (MEX, RSA, PAN boundaries).
+  - Checked alignment and verified clean vertical stacking.
+- **Status**: Completed successfully. ✅
