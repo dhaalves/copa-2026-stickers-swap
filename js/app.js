@@ -3,6 +3,66 @@
  */
 
 document.addEventListener('DOMContentLoaded', () => {
+    function stripAccents(str) {
+        if (!str) return '';
+        return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    }
+
+    function isMatch(sect, query) {
+        const teamCode = stripAccents(sect.dataset.teamCode || '').toLowerCase();
+        const teamName = stripAccents(sect.dataset.teamName || '').toLowerCase();
+        const groupName = stripAccents(sect.dataset.groupName || '').toLowerCase();
+        
+        const groupEn = groupName.replace('grupo', 'group');
+        
+        // 1. Team Code match (prefix match, e.g. "me" or "mex" matches "mex")
+        if (teamCode.startsWith(query)) {
+            return true;
+        }
+        
+        // 2. Team Name match starting at word boundary (e.g. "costa" in "costa do marfim", "herzegovina" in "bosnia-herzegovina")
+        const index = teamName.indexOf(query);
+        if (index === 0 || (index > 0 && (teamName[index - 1] === ' ' || teamName[index - 1] === '-'))) {
+            return true;
+        }
+        
+        // 3. Group match (e.g. "grupo a", "group a", "fwc & cc")
+        const isGroupQuery = query.startsWith('grupo') || 
+                             query.startsWith('group') || 
+                             query === 'fwc & cc' || 
+                             query === 'fwc e cc' || 
+                             query === 'fwc and cc';
+                             
+        if (isGroupQuery) {
+            if (query === 'grupo' || query === 'group') {
+                return true;
+            }
+            
+            // Normalize suffixes (e.g. "fwc & cc" -> "fwc and cc")
+            const cleanSuffix = (str) => {
+                return str.replace(/^(grupo|group)\s+/, '')
+                          .replace(/\s*&\s*/g, ' and ')
+                          .replace(/\s+e\s+/g, ' and ')
+                          .trim();
+            };
+            
+            const groupSuffixClean = cleanSuffix(groupName);
+            const querySuffixClean = cleanSuffix(query);
+            
+            if (groupSuffixClean === querySuffixClean) {
+                return true;
+            }
+            
+            // Check if query suffix matches any word in the group suffix (e.g. "cc" in "fwc and cc")
+            const groupSuffixWords = groupSuffixClean.split(/[^a-z0-9]+/);
+            if (groupSuffixWords.includes(querySuffixClean)) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+
     // Application State
     const state = {
         myAlbum: {
@@ -190,7 +250,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const fwcSection = document.createElement('div');
         fwcSection.className = 'team-section collapsed';
         fwcSection.dataset.sectionId = 'FWC';
-        fwcSection.dataset.searchKeywords = 'fwc fifa world cup fwc & cc';
+        fwcSection.dataset.teamCode = 'FWC';
+        fwcSection.dataset.teamName = 'FIFA World Cup';
+        fwcSection.dataset.groupName = 'FWC & CC';
         
         const fwcOwned = getOwnedCountInRange(1, 20);
         const fwcHeader = document.createElement('div');
@@ -225,7 +287,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const ccSection = document.createElement('div');
         ccSection.className = 'team-section collapsed';
         ccSection.dataset.sectionId = 'CC';
-        ccSection.dataset.searchKeywords = 'cc coca-cola fwc & cc';
+        ccSection.dataset.teamCode = 'CC';
+        ccSection.dataset.teamName = 'Coca-Cola';
+        ccSection.dataset.groupName = 'FWC & CC';
         
         const ccOwned = getOwnedCountInRange(21, 34);
         const ccHeader = document.createElement('div');
@@ -305,7 +369,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const section = document.createElement('div');
             section.className = 'team-section collapsed';
             section.dataset.sectionId = team.code;
-            section.dataset.searchKeywords = `${team.code} ${team.name} ${team.group}`.toLowerCase();
+            section.dataset.teamCode = team.code;
+            section.dataset.teamName = team.name;
+            section.dataset.groupName = team.group;
             
             const ownedCount = getOwnedCountInRange(start, end);
             const header = document.createElement('div');
@@ -793,7 +859,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Search Filter logic
         el.searchInput.addEventListener('input', () => {
-            const query = el.searchInput.value.trim().toLowerCase();
+            const query = stripAccents(el.searchInput.value.trim().toLowerCase());
             
             if (query === '') {
                 // Restore default: show everything but collapsed
@@ -810,8 +876,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Otherwise, filter
             // 1. Check sections
             document.querySelectorAll('.team-section').forEach(sect => {
-                const keywords = sect.dataset.searchKeywords || '';
-                if (keywords.includes(query)) {
+                if (isMatch(sect, query)) {
                     sect.classList.remove('hidden');
                     sect.classList.remove('collapsed'); // auto unfold search results
                 } else {
