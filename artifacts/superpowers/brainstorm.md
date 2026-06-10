@@ -1,29 +1,21 @@
-# Brainstorm: Copa 2026 Sticker Matching App
+# Brainstorm: Group Stickers by World Cup Group & Country
 
 ## 🎯 Goal
-Develop a minimalist, modern, and professional mobile-first web application to match Copa 2026 sticker albums for trades.
+Refactor the Copa 2026 Sticker Matching App UI to group stickers by official World Cup groups (Group A-L) and individual countries, displaying official 3-letter FIFA codes and country flags.
 
 ## ⚙️ Constraints
-- **Platform**: Client-side single page web application (HTML5, Javascript, Vanilla CSS).
-- **Album**: Fixed album for Copa 2026 (994 stickers).
-- **Core Matching Flow**: 100% client-side. Users generate shareable text codes or URLs with their album state and compare them locally without backend accounts.
-- **Sticker Input UI**: A visually premium grid of numbers (1-994) divided into tabs/pages (e.g., 1-100, 101-200) that allows clicking to cycle states (Missing, Owned, Repeated with quantity). Plus, a raw text area to copy/paste the code.
-- **Output/Sharing**: Clear lists of "You Give" and "You Receive", swap counters, and a button to copy a trade summary formatted for WhatsApp.
-- **Code Format**: Parses/generates the format: `SA26|1|<owned_ranges>|<repeated_quantities>`.
+- **Format Compatibility**: Must parse and generate the exact same string format `SA26|1|<owned_ranges>|<repeated_quantities>` without breaking existing user codes.
+- **Dynamic UI**: Layout must adjust cleanly to render sub-headers for each country and groups of 20 stickers.
 
 ## ⚠️ Risks
-- **DOM Overhead**: Displaying 994 interactive elements can lag on mobile.
-  - *Mitigation*: Divide stickers into tabbed chunks (e.g., 100 per tab) so only ~100 are rendered at any time, keeping rendering lightning-fast.
-- **Parsing Errors**: Handling malformed strings pasted by users.
-  - *Mitigation*: Implement a robust parser function with error handling and fallback behaviors.
-- **Responsive Layout**: Making a dense information layout fit cleanly on small mobile screens.
-  - *Mitigation*: Design with a mobile-first, vertical stacking layout, using collapsable details and clear badge indicators.
+- **Data size**: Storing 48 teams info in client JS could grow file size slightly, but text objects are extremely lightweight (< 5KB), so performance is unaffected.
+- **Index Errors**: Mapping sticker IDs (1 to 994) to 48 teams must be mathematically flawless.
+  - *Stickers 1-34*: Intro/Stadiums
+  - *Stickers 35-994*: 48 teams * 20 stickers each.
 
 ## ✅ Acceptance Criteria
-1. Pasting a valid code string updates the app state instantly.
-2. Clicking/tapping any sticker in the grid correctly updates state: Empty ➔ Owned ➔ Repeated (1x) ➔ Repeated (2x) ➔ Repeated (3x) ➔ Empty.
-3. Comparative matching accurately shows matches:
-   - "You Give" (User A repeated stickers that User B is missing).
-   - "You Receive" (User B repeated stickers that User A is missing).
-4. Matches can be copied to the clipboard with a single click formatted nicely for WhatsApp.
-5. The UI has a dark-mode-first aesthetic with smooth animations, using no heavy external libraries.
+1. Grid ranges tabs are replaced by Group tabs (Intro, Grupo A, ..., Grupo L).
+2. Each country displays its flag emoji, 3-letter code, and name as a header (e.g. `🇺🇸 USA - Estados Unidos`).
+3. Under each country, the grid shows its 20 stickers with absolute album numbers.
+4. Matching results show the country flag and 3-letter code next to the sticker number (e.g., `🇺🇸 USA 35` or `35 (USA)`).
+5. WhatsApp sharing copy includes flags/countries for ease of read.
