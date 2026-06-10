@@ -758,3 +758,45 @@ textarea:focus {
         grid-template-columns: repeat(4, 1fr);
     }
 }
+
+/* ==========================================================================
+   TEAM SECTION & COUNTRY HEADERS
+   ========================================================================== */
+
+.team-section {
+    margin-bottom: 24px;
+}
+
+.team-section-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--border-color);
+    padding: 10px 14px;
+    border-radius: var(--border-radius-sm);
+    margin-bottom: 12px;
+    font-family: var(--font-display);
+    font-weight: 700;
+}
+
+.team-flag {
+    font-size: 20px;
+    line-height: 1;
+}
+
+.team-code {
+    background: var(--accent-primary-glow);
+    color: var(--accent-primary);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+}
+
+.team-name {
+    color: var(--text-primary);
+    font-size: 14px;
+}

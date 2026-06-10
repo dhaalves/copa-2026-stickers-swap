@@ -11,22 +11,25 @@ document.addEventListener('DOMContentLoaded', () => {
             owned: new Set(),
             repeated: new Map()
         },
-        currentRangeStart: 1,
+        currentGroup: 'Intro',
         partnerState: null
     };
 
-    // Range definitions
-    const RANGES = [
-        { start: 1, end: 100 },
-        { start: 101, end: 200 },
-        { start: 201, end: 300 },
-        { start: 301, end: 400 },
-        { start: 401, end: 500 },
-        { start: 501, end: 600 },
-        { start: 601, end: 700 },
-        { start: 701, end: 800 },
-        { start: 801, end: 900 },
-        { start: 901, end: StickerParser.TOTAL_STICKERS }
+    // Group definitions matching the 12 Copa groups plus Intro
+    const GROUPS = [
+        { id: 'Intro', label: 'Intro' },
+        { id: 'Grupo A', label: 'Grupo A' },
+        { id: 'Grupo B', label: 'Grupo B' },
+        { id: 'Grupo C', label: 'Grupo C' },
+        { id: 'Grupo D', label: 'Grupo D' },
+        { id: 'Grupo E', label: 'Grupo E' },
+        { id: 'Grupo F', label: 'Grupo F' },
+        { id: 'Grupo G', label: 'Grupo G' },
+        { id: 'Grupo H', label: 'Grupo H' },
+        { id: 'Grupo I', label: 'Grupo I' },
+        { id: 'Grupo J', label: 'Grupo J' },
+        { id: 'Grupo K', label: 'Grupo K' },
+        { id: 'Grupo L', label: 'Grupo L' }
     ];
 
     // Local Storage Keys
@@ -147,16 +150,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderRangeSelector() {
         el.gridRangeSelector.innerHTML = '';
-        RANGES.forEach((range, idx) => {
+        GROUPS.forEach(group => {
             const btn = document.createElement('button');
-            btn.className = `range-btn ${range.start === state.currentRangeStart ? 'active' : ''}`;
-            btn.textContent = `${range.start}-${range.end}`;
-            btn.dataset.start = range.start;
+            btn.className = `range-btn ${group.id === state.currentGroup ? 'active' : ''}`;
+            btn.textContent = group.label;
+            btn.dataset.group = group.id;
             btn.addEventListener('click', () => {
-                // Set active range
                 document.querySelectorAll('.range-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
-                state.currentRangeStart = parseInt(range.start, 10);
+                state.currentGroup = group.id;
                 renderStickerGrid();
             });
             el.gridRangeSelector.appendChild(btn);
@@ -166,38 +168,92 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderStickerGrid() {
         el.stickersGrid.innerHTML = '';
         
-        // Find current range boundaries
-        const range = RANGES.find(r => r.start === state.currentRangeStart) || RANGES[0];
-        
-        for (let i = range.start; i <= range.end; i++) {
-            const cell = document.createElement('div');
-            cell.className = 'sticker-cell';
-            cell.textContent = i;
-            cell.dataset.id = i;
-
-            // Apply state classes
-            const isOwned = state.myAlbum.owned.has(i);
-            const repeatedQty = state.myAlbum.repeated.get(i) || 0;
-
-            if (repeatedQty > 0) {
-                cell.classList.add('repeated');
-                // Render badge for count
-                const badge = document.createElement('span');
-                badge.className = 'sticker-badge';
-                badge.textContent = `+${repeatedQty}`;
-                cell.appendChild(badge);
-            } else if (isOwned) {
-                cell.classList.add('owned');
+        if (state.currentGroup === 'Intro') {
+            const section = document.createElement('div');
+            section.className = 'team-section';
+            
+            const header = document.createElement('div');
+            header.className = 'team-section-header';
+            header.innerHTML = `
+                <span class="team-flag">🏆</span>
+                <span class="team-code">FWC</span>
+                <span class="team-name">Intro & Estádios</span>
+            `;
+            
+            const grid = document.createElement('div');
+            grid.className = 'stickers-grid';
+            
+            for (let i = 1; i <= 34; i++) {
+                const cell = createStickerCell(i);
+                grid.appendChild(cell);
             }
-
-            // Click event to cycle states
-            // Cycle: Missing -> Owned -> Repeated(+1) -> Repeated(+2) -> Repeated(+3) -> Missing
-            cell.addEventListener('click', () => {
-                handleStickerClick(i, cell);
+            
+            section.appendChild(header);
+            section.appendChild(grid);
+            el.stickersGrid.appendChild(section);
+        } else {
+            const groupTeams = StickerParser.TEAMS.filter(t => t.group === state.currentGroup);
+            
+            groupTeams.forEach(team => {
+                const teamIdx = StickerParser.TEAMS.indexOf(team);
+                const start = 35 + teamIdx * 20;
+                const end = start + 19;
+                
+                const section = document.createElement('div');
+                section.className = 'team-section';
+                
+                const header = document.createElement('div');
+                header.className = 'team-section-header';
+                header.innerHTML = `
+                    <span class="team-flag">${team.flag}</span>
+                    <span class="team-code">${team.code}</span>
+                    <span class="team-name">${team.name}</span>
+                `;
+                
+                const grid = document.createElement('div');
+                grid.className = 'stickers-grid';
+                
+                for (let i = start; i <= end; i++) {
+                    const cell = createStickerCell(i);
+                    grid.appendChild(cell);
+                }
+                
+                section.appendChild(header);
+                section.appendChild(grid);
+                el.stickersGrid.appendChild(section);
             });
-
-            el.stickersGrid.appendChild(cell);
         }
+    }
+
+    function createStickerCell(i) {
+        const cell = document.createElement('div');
+        cell.className = 'sticker-cell';
+        
+        const info = StickerParser.getStickerInfo(i);
+        cell.textContent = info ? info.relativeNumber : i;
+        cell.dataset.id = i;
+        if (info) {
+            cell.title = `${info.flag} ${info.code} #${info.relativeNumber} (Álbum: ${i})`;
+        }
+
+        const isOwned = state.myAlbum.owned.has(i);
+        const repeatedQty = state.myAlbum.repeated.get(i) || 0;
+
+        if (repeatedQty > 0) {
+            cell.classList.add('repeated');
+            const badge = document.createElement('span');
+            badge.className = 'sticker-badge';
+            badge.textContent = `+${repeatedQty}`;
+            cell.appendChild(badge);
+        } else if (isOwned) {
+            cell.classList.add('owned');
+        }
+
+        cell.addEventListener('click', () => {
+            handleStickerClick(i, cell);
+        });
+
+        return cell;
     }
 
     function handleStickerClick(id, cellElement) {
@@ -303,9 +359,13 @@ document.addEventListener('DOMContentLoaded', () => {
         el.matchGiveList.innerHTML = '';
         if (match.give.length > 0) {
             match.give.forEach(id => {
+                const info = StickerParser.getStickerInfo(id);
                 const badge = document.createElement('span');
                 badge.className = 'match-sticker-badge';
-                badge.textContent = id;
+                badge.textContent = info ? `${info.flag} ${info.code} ${id}` : id;
+                if (info) {
+                    badge.title = `${info.name} - #${info.relativeNumber}`;
+                }
                 el.matchGiveList.appendChild(badge);
             });
             // Update title header count
@@ -319,9 +379,13 @@ document.addEventListener('DOMContentLoaded', () => {
         el.matchReceiveList.innerHTML = '';
         if (match.receive.length > 0) {
             match.receive.forEach(id => {
+                const info = StickerParser.getStickerInfo(id);
                 const badge = document.createElement('span');
                 badge.className = 'match-sticker-badge';
-                badge.textContent = id;
+                badge.textContent = info ? `${info.flag} ${info.code} ${id}` : id;
+                if (info) {
+                    badge.title = `${info.name} - #${info.relativeNumber}`;
+                }
                 el.matchReceiveList.appendChild(badge);
             });
             // Update title header count
@@ -348,15 +412,23 @@ document.addEventListener('DOMContentLoaded', () => {
         msg += `🤝 Encontrei combinações interessantes para trocarmos!\n\n`;
 
         if (giveArr.length > 0) {
+            const giveFormatted = giveArr.map(id => {
+                const info = StickerParser.getStickerInfo(parseInt(id, 10));
+                return info ? `${info.flag} ${info.code} ${id}` : id;
+            });
             msg += `*Eu te dou* (${giveArr.length} itens):\n`;
-            msg += `👉 ${giveArr.join(', ')}\n\n`;
+            msg += `👉 ${giveFormatted.join(', ')}\n\n`;
         } else {
             msg += `*Eu te dou*:\n👉 Nenhuma repetida que você precise\n\n`;
         }
 
         if (receiveArr.length > 0) {
+            const receiveFormatted = receiveArr.map(id => {
+                const info = StickerParser.getStickerInfo(parseInt(id, 10));
+                return info ? `${info.flag} ${info.code} ${id}` : id;
+            });
             msg += `*Eu recebo de você* (${receiveArr.length} itens):\n`;
-            msg += `👉 ${receiveArr.join(', ')}\n\n`;
+            msg += `👉 ${receiveFormatted.join(', ')}\n\n`;
         } else {
             msg += `*Eu recebo de você*:\n👉 Nenhuma repetida que eu precise\n\n`;
         }
