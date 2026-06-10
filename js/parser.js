@@ -82,15 +82,25 @@ const StickerParser = {
   getStickerInfo(id) {
     if (id < 1 || id > this.TOTAL_STICKERS) return null;
     
-    // Intro & Stadiums (1 to 34)
+    // FWC (1 to 20) and CC (21 to 34)
     if (id <= 34) {
-      return {
-        code: 'FWC',
-        flag: '🏆',
-        name: 'Intro & Estádios',
-        group: 'Intro',
-        relativeNumber: id
-      };
+      if (id <= 20) {
+        return {
+          code: 'FWC',
+          flag: '🏆',
+          name: 'FIFA World Cup',
+          group: 'FWC & CC',
+          relativeNumber: id === 1 ? '00' : id - 1
+        };
+      } else {
+        return {
+          code: 'CC',
+          flag: '🥤',
+          name: 'Coca-Cola',
+          group: 'FWC & CC',
+          relativeNumber: id - 20
+        };
+      }
     }
     
     // Teams (35 to 994)

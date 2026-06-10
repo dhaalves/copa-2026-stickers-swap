@@ -59,16 +59,26 @@ console.log('   ✅ Sticker matching passed.');
 
 // Test 5: Mapping Teams & Groups
 console.log('5. Testing sticker to team/group mapping...');
-// 1. Sticker 1 -> Intro & Estádios
+// 1. Sticker 1 -> FWC 00
 const info1 = StickerParser.getStickerInfo(1);
 assert.strictEqual(info1.code, 'FWC');
-assert.strictEqual(info1.flag, '🏆');
-assert.strictEqual(info1.group, 'Intro');
-assert.strictEqual(info1.relativeNumber, 1);
+assert.strictEqual(info1.group, 'FWC & CC');
+assert.strictEqual(info1.relativeNumber, '00');
 
-// 2. Sticker 34 -> Intro & Estádios (end boundary)
+// 2. Sticker 20 -> FWC 19
+const info20 = StickerParser.getStickerInfo(20);
+assert.strictEqual(info20.code, 'FWC');
+assert.strictEqual(info20.relativeNumber, 19);
+
+// 3. Sticker 21 -> CC 1
+const info21 = StickerParser.getStickerInfo(21);
+assert.strictEqual(info21.code, 'CC');
+assert.strictEqual(info21.relativeNumber, 1);
+
+// 4. Sticker 34 -> CC 14
 const info34 = StickerParser.getStickerInfo(34);
-assert.strictEqual(info34.relativeNumber, 34);
+assert.strictEqual(info34.code, 'CC');
+assert.strictEqual(info34.relativeNumber, 14);
 
 // 3. Sticker 35 -> MEX (first team, first sticker)
 const info35 = StickerParser.getStickerInfo(35);
