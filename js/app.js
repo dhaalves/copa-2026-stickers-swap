@@ -1,67 +1,7 @@
 /**
  * UI Controller for Stickers Swap FWC 2026
  */
-
 document.addEventListener('DOMContentLoaded', () => {
-    function stripAccents(str) {
-        if (!str) return '';
-        return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-    }
-
-    function isMatch(sect, query) {
-        const teamCode = stripAccents(sect.dataset.teamCode || '').toLowerCase();
-        const teamName = stripAccents(sect.dataset.teamName || '').toLowerCase();
-        const groupName = stripAccents(sect.dataset.groupName || '').toLowerCase();
-
-        const groupEn = groupName.replace('grupo', 'group');
-
-        // 1. Team Code match (prefix match, e.g. "me" or "mex" matches "mex")
-        if (teamCode.startsWith(query)) {
-            return true;
-        }
-
-        // 2. Team Name match starting at word boundary (e.g. "costa" in "costa do marfim", "herzegovina" in "bosnia-herzegovina")
-        const index = teamName.indexOf(query);
-        if (index === 0 || (index > 0 && (teamName[index - 1] === ' ' || teamName[index - 1] === '-'))) {
-            return true;
-        }
-
-        // 3. Group match (e.g. "grupo a", "group a", "fwc & cc")
-        const isGroupQuery = query.startsWith('grupo') ||
-            query.startsWith('group') ||
-            query === 'fwc & cc' ||
-            query === 'fwc e cc' ||
-            query === 'fwc and cc';
-
-        if (isGroupQuery) {
-            if (query === 'grupo' || query === 'group') {
-                return true;
-            }
-
-            // Normalize suffixes (e.g. "fwc & cc" -> "fwc and cc")
-            const cleanSuffix = (str) => {
-                return str.replace(/^(grupo|group)\s+/, '')
-                    .replace(/\s*&\s*/g, ' and ')
-                    .replace(/\s+e\s+/g, ' and ')
-                    .trim();
-            };
-
-            const groupSuffixClean = cleanSuffix(groupName);
-            const querySuffixClean = cleanSuffix(query);
-
-            if (groupSuffixClean === querySuffixClean) {
-                return true;
-            }
-
-            // Check if query suffix matches any word in the group suffix (e.g. "cc" in "fwc and cc")
-            const groupSuffixWords = groupSuffixClean.split(/[^a-z0-9]+/);
-            if (groupSuffixWords.includes(querySuffixClean)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
 
     // Application State
     const state = {
@@ -120,10 +60,7 @@ document.addEventListener('DOMContentLoaded', () => {
         matchReceiveList: document.getElementById('match-receive-list'),
         btnShareWhatsapp: document.getElementById('btn-share-whatsapp'),
         importCodeTextarea: document.getElementById('import-code-textarea'),
-        btnImportConfirm: document.getElementById('btn-import-confirm'),
-        searchInput: document.getElementById('sticker-search-input'),
-        btnUnfoldAll: document.getElementById('btn-unfold-all'),
-        btnFoldAll: document.getElementById('btn-fold-all')
+        btnImportConfirm: document.getElementById('btn-import-confirm')
     };
 
     /* ==========================================================================
@@ -688,7 +625,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const info = StickerParser.getStickerInfo(id);
                 const badge = document.createElement('span');
                 badge.className = 'match-sticker-badge';
-                badge.textContent = info ? `${info.code} ${id}` : id;
+                badge.textContent = info ? `${info.code} ${info.relativeNumber}` : id;
                 if (info) {
                     badge.title = `${info.name} - #${info.relativeNumber}`;
                 }
@@ -708,7 +645,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const info = StickerParser.getStickerInfo(id);
                 const badge = document.createElement('span');
                 badge.className = 'match-sticker-badge';
-                badge.textContent = info ? `${info.code} ${id}` : id;
+                badge.textContent = info ? `${info.code} ${info.relativeNumber}` : id;
                 if (info) {
                     badge.title = `${info.name} - #${info.relativeNumber}`;
                 }
@@ -740,7 +677,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (giveArr.length > 0) {
             const giveFormatted = giveArr.map(id => {
                 const info = StickerParser.getStickerInfo(parseInt(id, 10));
-                return info ? `${info.code} ${id}` : id;
+                return info ? `${info.code} ${info.relativeNumber}` : id;
             });
             msg += `*Eu te dou* (${giveArr.length} itens):\n`;
             msg += `👉 ${giveFormatted.join(', ')}\n\n`;
@@ -751,7 +688,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (receiveArr.length > 0) {
             const receiveFormatted = receiveArr.map(id => {
                 const info = StickerParser.getStickerInfo(parseInt(id, 10));
-                return info ? `${info.code} ${id}` : id;
+                return info ? `${info.code} ${info.relativeNumber}` : id;
             });
             msg += `*Eu recebo de você* (${receiveArr.length} itens):\n`;
             msg += `👉 ${receiveFormatted.join(', ')}\n\n`;
@@ -828,75 +765,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Share Whatsapp
         el.btnShareWhatsapp.addEventListener('click', shareTradeOnWhatsapp);
 
-        // Global Unfold/Fold
-        el.btnUnfoldAll.addEventListener('click', () => {
-            document.querySelectorAll('.team-section').forEach(sect => {
-                sect.classList.remove('collapsed');
-            });
-        });
 
-        el.btnFoldAll.addEventListener('click', () => {
-            document.querySelectorAll('.team-section').forEach(sect => {
-                sect.classList.add('collapsed');
-            });
-        });
-
-        // Search Filter logic
-        el.searchInput.addEventListener('input', () => {
-            const query = stripAccents(el.searchInput.value.trim().toLowerCase());
-
-            if (query === '') {
-                // Restore default: show everything but collapsed
-                document.querySelectorAll('.team-section').forEach(sect => {
-                    sect.classList.remove('hidden');
-                    sect.classList.add('collapsed');
-                });
-                document.querySelectorAll('.group-title-divider').forEach(div => {
-                    div.classList.remove('hidden');
-                });
-                return;
-            }
-
-            // Otherwise, filter
-            // 1. Check sections
-            document.querySelectorAll('.team-section').forEach(sect => {
-                if (isMatch(sect, query)) {
-                    sect.classList.remove('hidden');
-                    sect.classList.remove('collapsed'); // auto unfold search results
-                } else {
-                    sect.classList.add('hidden');
-                }
-            });
-
-            // 2. Filter group dividers: only show if at least one of their sections is visible
-            document.querySelectorAll('.group-title-divider').forEach(divider => {
-                const groupName = divider.dataset.group;
-                let hasVisibleTeam = false;
-
-                if (groupName === 'FWC & CC') {
-                    const fwc = document.querySelector('.team-section[data-section-id="FWC"]');
-                    const cc = document.querySelector('.team-section[data-section-id="CC"]');
-                    if ((fwc && !fwc.classList.contains('hidden')) || (cc && !cc.classList.contains('hidden'))) {
-                        hasVisibleTeam = true;
-                    }
-                } else {
-                    const groupTeams = StickerParser.TEAMS.filter(t => t.group === groupName);
-                    for (const team of groupTeams) {
-                        const sect = document.querySelector(`.team-section[data-section-id="${team.code}"]`);
-                        if (sect && !sect.classList.contains('hidden')) {
-                            hasVisibleTeam = true;
-                            break;
-                        }
-                    }
-                }
-
-                if (hasVisibleTeam) {
-                    divider.classList.remove('hidden');
-                } else {
-                    divider.classList.add('hidden');
-                }
-            });
-        });
     }
 
     function switchTab(sectionId) {

@@ -1,22 +1,12 @@
-# Brainstorming: Navigation Redesign & Header Share Icon
+# Brainstorming: Remove Search Filter Code
 
-Redesigning the app's sharing and import interface to make it more intuitive and cleaner.
+Removing all filter and search functionality from the Copa 2026 Sticker Album application to keep the interface simple and focused.
 
 ## Goal
-- Move the Import features out of modals/buttons and into a dedicated tab alongside "Meu Álbum" and "Comparar & Trocar".
-- Remove the card "Meu Código de Compartilhamento" from the "Meu Álbum" tab.
-- Place a single share icon button in the header at the top right of the page to copy the sharing code to clipboard.
+- Remove the search input box from the UI (index.html).
+- Remove all search-related logic, elements, and event listeners from the controller (js/app.js).
+- Delete the automated search simulation test script (test_search.js) as search is no longer a feature.
 
 ## Constraints & Requirements
-- Mobile-first: UI must look premium on mobile screens, and not crowd the header.
-- Maintain existing codebase functions (loading, parsing, saving) without breaking existing tests.
-- Circular icon design for the top header share button. It should fit the styling palette perfectly.
-- Clean up any unused elements (like the modal backdrop) to avoid DOM bloating.
-
-## Design Options for Top Share Icon
-1. **Plain Button next to Title**: A subtle icon button at the end of the brand title row.
-2. **Glowing Round Button**: A styled circular button `🔗` that glows emerald on hover and updates to `✅` temporarily upon copying. (Recommended - high aesthetics).
-
-## Design Options for Import Tab
-1. **Three-Tab Navigation**: Redesign the tab bar to have three tabs of equal width: "Meu Álbum", "Comparar & Trocar", "Importar". (Recommended - straightforward and cleans up the modal flow).
-2. **Dropdown Menu**: A header dropdown menu. (Overkill for our requirements).
+- Ensure all other elements render correctly and do not throw JavaScript errors (since searchInput is removed).
+- Ensure existing core parser tests (`node js/test_parser.js`) continue to pass successfully.
