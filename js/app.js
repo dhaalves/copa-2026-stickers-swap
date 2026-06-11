@@ -1,5 +1,5 @@
 /**
- * UI Controller for Copa Match 2026
+ * UI Controller for Stickers Swap FWC 2026
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -12,54 +12,54 @@ document.addEventListener('DOMContentLoaded', () => {
         const teamCode = stripAccents(sect.dataset.teamCode || '').toLowerCase();
         const teamName = stripAccents(sect.dataset.teamName || '').toLowerCase();
         const groupName = stripAccents(sect.dataset.groupName || '').toLowerCase();
-        
+
         const groupEn = groupName.replace('grupo', 'group');
-        
+
         // 1. Team Code match (prefix match, e.g. "me" or "mex" matches "mex")
         if (teamCode.startsWith(query)) {
             return true;
         }
-        
+
         // 2. Team Name match starting at word boundary (e.g. "costa" in "costa do marfim", "herzegovina" in "bosnia-herzegovina")
         const index = teamName.indexOf(query);
         if (index === 0 || (index > 0 && (teamName[index - 1] === ' ' || teamName[index - 1] === '-'))) {
             return true;
         }
-        
+
         // 3. Group match (e.g. "grupo a", "group a", "fwc & cc")
-        const isGroupQuery = query.startsWith('grupo') || 
-                             query.startsWith('group') || 
-                             query === 'fwc & cc' || 
-                             query === 'fwc e cc' || 
-                             query === 'fwc and cc';
-                             
+        const isGroupQuery = query.startsWith('grupo') ||
+            query.startsWith('group') ||
+            query === 'fwc & cc' ||
+            query === 'fwc e cc' ||
+            query === 'fwc and cc';
+
         if (isGroupQuery) {
             if (query === 'grupo' || query === 'group') {
                 return true;
             }
-            
+
             // Normalize suffixes (e.g. "fwc & cc" -> "fwc and cc")
             const cleanSuffix = (str) => {
                 return str.replace(/^(grupo|group)\s+/, '')
-                          .replace(/\s*&\s*/g, ' and ')
-                          .replace(/\s+e\s+/g, ' and ')
-                          .trim();
+                    .replace(/\s*&\s*/g, ' and ')
+                    .replace(/\s+e\s+/g, ' and ')
+                    .trim();
             };
-            
+
             const groupSuffixClean = cleanSuffix(groupName);
             const querySuffixClean = cleanSuffix(query);
-            
+
             if (groupSuffixClean === querySuffixClean) {
                 return true;
             }
-            
+
             // Check if query suffix matches any word in the group suffix (e.g. "cc" in "fwc and cc")
             const groupSuffixWords = groupSuffixClean.split(/[^a-z0-9]+/);
             if (groupSuffixWords.includes(querySuffixClean)) {
                 return true;
             }
         }
-        
+
         return false;
     }
 
@@ -103,11 +103,12 @@ document.addEventListener('DOMContentLoaded', () => {
         statsRepeated: document.getElementById('stats-repeated'),
         tabMyAlbum: document.getElementById('tab-trigger-my-album'),
         tabMatching: document.getElementById('tab-trigger-matching'),
+        tabImport: document.getElementById('tab-trigger-import'),
         sectionMyAlbum: document.getElementById('section-my-album'),
         sectionMatching: document.getElementById('section-matching'),
+        sectionImport: document.getElementById('section-import'),
         myCodeTextarea: document.getElementById('my-code-textarea'),
         btnCopyMyCode: document.getElementById('btn-copy-my-code'),
-        btnImportMyCode: document.getElementById('btn-import-my-code'),
         gridRangeSelector: document.getElementById('grid-range-selector'),
         stickersGrid: document.getElementById('stickers-grid-container'),
         partnerCodeTextarea: document.getElementById('partner-code-textarea'),
@@ -118,10 +119,8 @@ document.addEventListener('DOMContentLoaded', () => {
         matchGiveList: document.getElementById('match-give-list'),
         matchReceiveList: document.getElementById('match-receive-list'),
         btnShareWhatsapp: document.getElementById('btn-share-whatsapp'),
-        importModalBackdrop: document.getElementById('import-modal-backdrop'),
         importCodeTextarea: document.getElementById('import-code-textarea'),
-        btnModalCancel: document.getElementById('btn-modal-cancel'),
-        btnModalConfirm: document.getElementById('btn-modal-confirm'),
+        btnImportConfirm: document.getElementById('btn-import-confirm'),
         searchInput: document.getElementById('sticker-search-input'),
         btnUnfoldAll: document.getElementById('btn-unfold-all'),
         btnFoldAll: document.getElementById('btn-fold-all')
@@ -192,7 +191,7 @@ document.addEventListener('DOMContentLoaded', () => {
             saveMyAlbumToStorage();
             updateMyAlbumUI();
             renderStickerGrid();
-            
+
             // If we have a partner code filled, trigger recalculation
             if (el.partnerCodeTextarea.value.trim()) {
                 calculateMatch();
@@ -210,19 +209,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderStickerGrid() {
         el.stickersGrid.innerHTML = '';
-        
+
         // Render Group title for FWC & CC
         const fwcCcDivider = document.createElement('div');
         fwcCcDivider.className = 'group-title-divider';
         fwcCcDivider.dataset.group = 'FWC & CC';
-        
+
         const fwcCcTitleText = document.createElement('span');
         fwcCcTitleText.textContent = 'FWC & CC';
         fwcCcDivider.appendChild(fwcCcTitleText);
-        
+
         const fwcCcActions = document.createElement('div');
         fwcCcActions.className = 'group-actions';
-        
+
         const btnFwcCcUnfold = document.createElement('button');
         btnFwcCcUnfold.className = 'group-action-btn btn-group-unfold';
         btnFwcCcUnfold.textContent = '▼';
@@ -231,7 +230,7 @@ document.addEventListener('DOMContentLoaded', () => {
             e.stopPropagation();
             expandGroupTeams('FWC & CC');
         });
-        
+
         const btnFwcCcFold = document.createElement('button');
         btnFwcCcFold.className = 'group-action-btn btn-group-fold';
         btnFwcCcFold.textContent = '▲';
@@ -240,12 +239,12 @@ document.addEventListener('DOMContentLoaded', () => {
             e.stopPropagation();
             collapseGroupTeams('FWC & CC');
         });
-        
+
         fwcCcActions.appendChild(btnFwcCcUnfold);
         fwcCcActions.appendChild(btnFwcCcFold);
         fwcCcDivider.appendChild(fwcCcActions);
         el.stickersGrid.appendChild(fwcCcDivider);
-        
+
         // 1. Render FWC section
         const fwcSection = document.createElement('div');
         fwcSection.className = 'team-section collapsed';
@@ -253,7 +252,7 @@ document.addEventListener('DOMContentLoaded', () => {
         fwcSection.dataset.teamCode = 'FWC';
         fwcSection.dataset.teamName = 'FIFA World Cup';
         fwcSection.dataset.groupName = 'FWC & CC';
-        
+
         const fwcOwned = getOwnedCountInRange(1, 20);
         const fwcHeader = document.createElement('div');
         fwcHeader.className = 'team-section-header';
@@ -267,20 +266,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 <span class="chevron-icon">▼</span>
             </div>
         `;
-        
+
         const fwcGrid = document.createElement('div');
         fwcGrid.className = 'stickers-grid';
         for (let i = 1; i <= 20; i++) {
             fwcGrid.appendChild(createStickerCell(i));
         }
-        
+
         fwcSection.appendChild(fwcHeader);
         fwcSection.appendChild(fwcGrid);
-        
+
         fwcHeader.addEventListener('click', () => {
             fwcSection.classList.toggle('collapsed');
         });
-        
+
         el.stickersGrid.appendChild(fwcSection);
 
         // 2. Render CC section
@@ -290,7 +289,7 @@ document.addEventListener('DOMContentLoaded', () => {
         ccSection.dataset.teamCode = 'CC';
         ccSection.dataset.teamName = 'Coca-Cola';
         ccSection.dataset.groupName = 'FWC & CC';
-        
+
         const ccOwned = getOwnedCountInRange(21, 34);
         const ccHeader = document.createElement('div');
         ccHeader.className = 'team-section-header';
@@ -304,20 +303,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 <span class="chevron-icon">▼</span>
             </div>
         `;
-        
+
         const ccGrid = document.createElement('div');
         ccGrid.className = 'stickers-grid';
         for (let i = 21; i <= 34; i++) {
             ccGrid.appendChild(createStickerCell(i));
         }
-        
+
         ccSection.appendChild(ccHeader);
         ccSection.appendChild(ccGrid);
-        
+
         ccHeader.addEventListener('click', () => {
             ccSection.classList.toggle('collapsed');
         });
-        
+
         el.stickersGrid.appendChild(ccSection);
 
         // 3. Render all Group A to L Teams
@@ -326,21 +325,21 @@ document.addEventListener('DOMContentLoaded', () => {
             const teamIdx = StickerParser.TEAMS.indexOf(team);
             const start = 35 + teamIdx * 20;
             const end = start + 19;
-            
+
             // Insert Group title if it changed
             if (team.group !== lastGroup) {
                 lastGroup = team.group;
                 const groupTitle = document.createElement('div');
                 groupTitle.className = 'group-title-divider';
                 groupTitle.dataset.group = team.group;
-                
+
                 const titleText = document.createElement('span');
                 titleText.textContent = team.group;
                 groupTitle.appendChild(titleText);
-                
+
                 const groupActions = document.createElement('div');
                 groupActions.className = 'group-actions';
-                
+
                 const btnGroupUnfold = document.createElement('button');
                 btnGroupUnfold.className = 'group-action-btn btn-group-unfold';
                 btnGroupUnfold.textContent = '▼';
@@ -349,7 +348,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     e.stopPropagation();
                     expandGroupTeams(team.group);
                 });
-                
+
                 const btnGroupFold = document.createElement('button');
                 btnGroupFold.className = 'group-action-btn btn-group-fold';
                 btnGroupFold.textContent = '▲';
@@ -358,21 +357,21 @@ document.addEventListener('DOMContentLoaded', () => {
                     e.stopPropagation();
                     collapseGroupTeams(team.group);
                 });
-                
+
                 groupActions.appendChild(btnGroupUnfold);
                 groupActions.appendChild(btnGroupFold);
                 groupTitle.appendChild(groupActions);
-                
+
                 el.stickersGrid.appendChild(groupTitle);
             }
-            
+
             const section = document.createElement('div');
             section.className = 'team-section collapsed';
             section.dataset.sectionId = team.code;
             section.dataset.teamCode = team.code;
             section.dataset.teamName = team.name;
             section.dataset.groupName = team.group;
-            
+
             const ownedCount = getOwnedCountInRange(start, end);
             const header = document.createElement('div');
             header.className = 'team-section-header';
@@ -386,22 +385,22 @@ document.addEventListener('DOMContentLoaded', () => {
                     <span class="chevron-icon">▼</span>
                 </div>
             `;
-            
+
             const grid = document.createElement('div');
             grid.className = 'stickers-grid';
-            
+
             for (let i = start; i <= end; i++) {
                 const cell = createStickerCell(i);
                 grid.appendChild(cell);
             }
-            
+
             section.appendChild(header);
             section.appendChild(grid);
-            
+
             header.addEventListener('click', () => {
                 section.classList.toggle('collapsed');
             });
-            
+
             el.stickersGrid.appendChild(section);
         });
     }
@@ -419,7 +418,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function createStickerCell(i) {
         const cell = document.createElement('div');
         cell.className = 'sticker-cell';
-        
+
         const info = StickerParser.getStickerInfo(i);
         cell.dataset.id = i;
         if (info) {
@@ -497,7 +496,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Save and Update UI
         saveMyAlbumToStorage();
         updateMyAlbumUI();
-        
+
         const info = StickerParser.getStickerInfo(id);
         if (info) {
             updateSectionProgress(info.code);
@@ -571,7 +570,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function updateSectionProgress(code) {
         const sectionEl = document.querySelector(`.team-section[data-section-id="${code}"]`);
         if (!sectionEl) return;
-        
+
         const progressEl = sectionEl.querySelector('.team-progress');
         if (!progressEl) return;
 
@@ -633,7 +632,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function updateMyAlbumUI() {
         const ownedCount = state.myAlbum.owned.size;
         const total = StickerParser.TOTAL_STICKERS;
-        
+
         // Sum all repeated quantities
         let repeatedCount = 0;
         for (const qty of state.myAlbum.repeated.values()) {
@@ -735,7 +734,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const receiveArr = receiveStr ? receiveStr.split(',') : [];
 
         // Build neat summary message
-        let msg = `*Copa Match 2026 - Sugestão de Troca* ⚽\n\n`;
+        let msg = `*Stickers Swap FWC 2026 - Sugestão de Troca* ⚽\n\n`;
         msg += `🤝 Encontrei combinações interessantes para trocarmos!\n\n`;
 
         if (giveArr.length > 0) {
@@ -760,17 +759,17 @@ document.addEventListener('DOMContentLoaded', () => {
             msg += `*Eu recebo de você*:\n👉 Nenhuma repetida que eu precise\n\n`;
         }
 
-        msg += `Gerado de forma rápida e local no aplicativo *Copa Match 26*.`;
+        msg += `Gerado de forma rápida e local no aplicativo *Stickers Swap FWC 2026*.`;
 
         // 1. Copy to clipboard
         navigator.clipboard.writeText(msg).then(() => {
             // Temporary button state change
             const originalHTML = el.btnShareWhatsapp.innerHTML;
             el.btnShareWhatsapp.innerHTML = '<span>✅ Copiado para a Área de Transferência!</span>';
-            
+
             setTimeout(() => {
                 el.btnShareWhatsapp.innerHTML = originalHTML;
-                
+
                 // 2. Open WhatsApp Share Link
                 const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`;
                 window.open(url, '_blank');
@@ -791,50 +790,35 @@ document.addEventListener('DOMContentLoaded', () => {
         // Tab switching
         el.tabMyAlbum.addEventListener('click', () => switchTab('section-my-album'));
         el.tabMatching.addEventListener('click', () => switchTab('section-matching'));
+        el.tabImport.addEventListener('click', () => switchTab('section-import'));
 
         // Copy Share Code
         el.btnCopyMyCode.addEventListener('click', () => {
             const code = el.myCodeTextarea.value;
             navigator.clipboard.writeText(code).then(() => {
-                const originalText = el.btnCopyMyCode.textContent;
-                el.btnCopyMyCode.textContent = "Copiado!";
-                el.btnCopyMyCode.classList.add('btn-primary');
-                el.btnCopyMyCode.classList.remove('btn-secondary');
+                const originalHTML = el.btnCopyMyCode.innerHTML;
+                el.btnCopyMyCode.innerHTML = '✅';
+                el.btnCopyMyCode.style.borderColor = 'var(--accent-primary)';
+                el.btnCopyMyCode.style.background = 'var(--accent-primary-glow)';
                 setTimeout(() => {
-                    el.btnCopyMyCode.textContent = originalText;
-                    el.btnCopyMyCode.classList.add('btn-secondary');
-                    el.btnCopyMyCode.classList.remove('btn-primary');
+                    el.btnCopyMyCode.innerHTML = originalHTML;
+                    el.btnCopyMyCode.style.borderColor = '';
+                    el.btnCopyMyCode.style.background = '';
                 }, 1500);
             }).catch(err => {
                 console.error("Falha ao copiar código:", err);
             });
         });
 
-        // Open Import Modal
-        el.btnImportMyCode.addEventListener('click', () => {
-            el.importCodeTextarea.value = '';
-            el.importModalBackdrop.classList.remove('hidden');
-            el.importCodeTextarea.focus();
-        });
-
-        // Close Import Modal
-        el.btnModalCancel.addEventListener('click', () => {
-            el.importModalBackdrop.classList.add('hidden');
-        });
-
-        el.importModalBackdrop.addEventListener('click', (e) => {
-            if (e.target === el.importModalBackdrop) {
-                el.importModalBackdrop.classList.add('hidden');
-            }
-        });
-
-        // Confirm Import Modal
-        el.btnModalConfirm.addEventListener('click', () => {
+        // Confirm Import from Tab
+        el.btnImportConfirm.addEventListener('click', () => {
             const code = el.importCodeTextarea.value.trim();
             if (importAlbumFromCode(code)) {
-                el.importModalBackdrop.classList.add('hidden');
+                alert("🎉 Álbum importado e restaurado com sucesso!");
+                el.importCodeTextarea.value = '';
+                switchTab('section-my-album');
             } else {
-                alert("Código inválido! Por favor, cole o código no formato correto (ex: SA26|1|...)");
+                alert("⚠️ Código inválido! Por favor, cole o código no formato correto (ex: SA26|1|...)");
             }
         });
 
@@ -860,7 +844,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Search Filter logic
         el.searchInput.addEventListener('input', () => {
             const query = stripAccents(el.searchInput.value.trim().toLowerCase());
-            
+
             if (query === '') {
                 // Restore default: show everything but collapsed
                 document.querySelectorAll('.team-section').forEach(sect => {
@@ -888,7 +872,7 @@ document.addEventListener('DOMContentLoaded', () => {
             document.querySelectorAll('.group-title-divider').forEach(divider => {
                 const groupName = divider.dataset.group;
                 let hasVisibleTeam = false;
-                
+
                 if (groupName === 'FWC & CC') {
                     const fwc = document.querySelector('.team-section[data-section-id="FWC"]');
                     const cc = document.querySelector('.team-section[data-section-id="CC"]');
@@ -941,14 +925,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function checkQueryParams() {
         const urlParams = new URLSearchParams(window.location.search);
-        
+
         // check if sharing partner code (which is our friend's repeats list)
         const partnerCode = urlParams.get('partner');
         if (partnerCode) {
             el.partnerCodeTextarea.value = partnerCode;
             switchTab('section-matching');
             calculateMatch();
-            
+
             // Clean up the URL so reloading doesn't prompt again or keep it dirty
             // window.history.replaceState({}, document.title, window.location.pathname);
         }

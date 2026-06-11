@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Copa Match 2026 - Troca de Figurinhas</title>
+    <title>Stickers Swap FWC 2026 - Troca de Figurinhas</title>
     <meta name="description"
         content="Aplicativo mobile-first minimalista e moderno para matching de figurinhas do álbum da Copa de 2026. Compare e compartilhe trocas facilmente.">
     <!-- Google Fonts -->
@@ -20,12 +20,15 @@
     <div class="app-container">
         <!-- Header -->
         <header class="app-header">
-            <div class="brand">
-                <div class="logo-icon">⚽</div>
-                <div>
-                    <h1 id="app-title">Stickers Swap 26</h1>
-                    <p class="subtitle">Organize & Troque Figurinhas</p>
+            <div class="header-main-row">
+                <div class="brand">
+                    <div class="logo-icon">⚽</div>
+                    <div>
+                        <h1 id="app-title">Stickers Swap 2026</h1>
+                        <p class="subtitle">Organize & Troque Figurinhas</p>
+                    </div>
                 </div>
+                <button id="btn-copy-my-code" class="header-share-btn" title="Compartilhar (Copia & Cola)">🔗</button>
             </div>
 
             <!-- Quick Stats -->
@@ -52,6 +55,9 @@
             <button class="tab-btn" id="tab-trigger-matching" data-target="section-matching">
                 <span>🔄 Comparar & Trocar</span>
             </button>
+            <button class="tab-btn" id="tab-trigger-import" data-target="section-import">
+                <span>📥 Importar</span>
+            </button>
         </nav>
 
         <!-- Main Content -->
@@ -59,21 +65,8 @@
 
             <!-- Section A: My Album -->
             <section class="tab-section active" id="section-my-album">
-                <!-- Code Input/Output Panel -->
-                <div class="card code-panel">
-                    <div class="card-header">
-                        <h2>Meu Código de Compartilhamento</h2>
-                        <span class="tooltip-trigger"
-                            title="Este código representa o estado do seu álbum (figurinhas coladas e repetidas).">ℹ️</span>
-                    </div>
-                    <div class="code-actions">
-                        <textarea id="my-code-textarea" placeholder="Nenhum código gerado..." readonly></textarea>
-                        <div class="button-group">
-                            <button id="btn-copy-my-code" class="btn btn-secondary">Copiar Código</button>
-                            <button id="btn-import-my-code" class="btn btn-outline">Importar</button>
-                        </div>
-                    </div>
-                </div>
+                <!-- Hidden textarea to store sharing code -->
+                <textarea id="my-code-textarea" class="hidden" readonly></textarea>
 
                 <!-- Sticker Grid Panel -->
                 <div class="card grid-panel">
@@ -165,20 +158,17 @@
                 </div>
             </section>
 
-        </main>
-
-        <!-- Modal Dialog for Importing Code -->
-        <div class="modal-backdrop hidden" id="import-modal-backdrop">
-            <div class="modal-card">
-                <h3>Importar Código do Álbum</h3>
-                <p>Cole o seu código de compartilhamento abaixo para restaurar o estado do seu álbum:</p>
-                <textarea id="import-code-textarea" placeholder="Cole seu código aqui..."></textarea>
-                <div class="modal-actions">
-                    <button id="btn-modal-cancel" class="btn btn-outline">Cancelar</button>
-                    <button id="btn-modal-confirm" class="btn btn-primary">Importar</button>
+            <!-- Section C: Import -->
+            <section class="tab-section" id="section-import">
+                <div class="card import-panel">
+                    <h2>Importar Meu Álbum</h2>
+                    <p class="section-desc">Cole o seu código de compartilhamento abaixo para restaurar o estado do seu álbum:</p>
+                    <textarea id="import-code-textarea" placeholder="Cole o código do seu álbum aqui..."></textarea>
+                    <button id="btn-import-confirm" class="btn btn-primary btn-block" style="margin-top: 16px;">Restaurar Álbum</button>
                 </div>
-            </div>
-        </div>
+            </section>
+
+        </main>
 
     </div>
 

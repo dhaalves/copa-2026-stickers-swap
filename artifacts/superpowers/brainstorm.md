@@ -1,34 +1,22 @@
-# Brainstorm: Fix Search Selection Filter (Part 2)
+# Brainstorming: Navigation Redesign & Header Share Icon
 
-## 🎯 Goal
-Diagnose and resolve remaining search filter issues where searches like "GER" match "Bósnia-Herzegovina", "PAN" matches "Espanha", "CC" matches "FWC", and English group queries like "Group A" do not work.
+Redesigning the app's sharing and import interface to make it more intuitive and cleaner.
 
-## 🔍 Root Cause Analysis
-1. **Substring Collisions**: 
-   - The current search matches substring `keywords.includes(query)`.
-   - Searching Germany's code `GER` matches `BIH` because `herzegovina` contains `ger`.
-   - Searching Panama's code `PAN` matches `ESP` because `espanha` contains `pan`.
-   - Searching Coca-Cola's code `CC` matches FWC because both share the group name `fwc & cc` in their keywords, and `fwc & cc` contains `cc`.
-2. **Lack of Language Localization Support**:
-   - English terms like "Group" do not match the Portuguese "Grupo" stored in the dataset.
-3. **No Strict Separation of Contexts**:
-   - Merging team name, team code, and group name into a single string for substring matching makes it impossible to distinguish between a search for a specific team vs. a search for a group.
+## Goal
+- Move the Import features out of modals/buttons and into a dedicated tab alongside "Meu Álbum" and "Comparar & Trocar".
+- Remove the card "Meu Código de Compartilhamento" from the "Meu Álbum" tab.
+- Place a single share icon button in the header at the top right of the page to copy the sharing code to clipboard.
 
-## 🛠️ Proposed Solution
-1. Store separate search metadata attributes on each section element:
-   - `data-team-code` (e.g., `MEX`, `CC`, `FWC`)
-   - `data-team-name` (e.g., `México`, `Coca-Cola`, `FIFA World Cup`)
-   - `data-group-name` (e.g., `Grupo A`, `FWC & CC`)
-2. Implement a precise multi-layer matcher function `isMatch(sect, query)` that handles:
-   - **Team Code Matching**: Checks if the team code starts with the query.
-   - **Team Name Matching**: Checks if the team name contains the query.
-   - **Group Matching**: Explicitly triggers only when the query starts with group-related keywords ("grupo", "group", "fwc & cc", etc.) and maps the group suffixes.
-3. Use diacritic stripping (`stripAccents`) on all terms.
+## Constraints & Requirements
+- Mobile-first: UI must look premium on mobile screens, and not crowd the header.
+- Maintain existing codebase functions (loading, parsing, saving) without breaking existing tests.
+- Circular icon design for the top header share button. It should fit the styling palette perfectly.
+- Clean up any unused elements (like the modal backdrop) to avoid DOM bloating.
 
-## ✅ Acceptance Criteria
-1. Searching `CC` shows only the Coca-Cola section (hides FWC).
-2. Searching `FWC` shows only the FWC section (hides CC).
-3. Searching `GER` shows only Germany (hides Bósnia-Herzegovina).
-4. Searching `PAN` shows only Panama (hides Espanha).
-5. Searching `Grupo A` or `Group A` displays all Group A teams and hides others.
-6. Searching `fwc & cc` or `grupo fwc` displays both FWC and CC sections.
+## Design Options for Top Share Icon
+1. **Plain Button next to Title**: A subtle icon button at the end of the brand title row.
+2. **Glowing Round Button**: A styled circular button `🔗` that glows emerald on hover and updates to `✅` temporarily upon copying. (Recommended - high aesthetics).
+
+## Design Options for Import Tab
+1. **Three-Tab Navigation**: Redesign the tab bar to have three tabs of equal width: "Meu Álbum", "Comparar & Trocar", "Importar". (Recommended - straightforward and cleans up the modal flow).
+2. **Dropdown Menu**: A header dropdown menu. (Overkill for our requirements).
