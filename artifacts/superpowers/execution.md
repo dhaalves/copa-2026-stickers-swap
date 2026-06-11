@@ -43,3 +43,12 @@
   - Adicionou o Teste 7 que valida a retrocompatibilidade com a string de formato legado.
 - **Verificação**: Executou `node js/test_parser.js` com todos os 7 testes passando com sucesso.
 - **Resultado**: Sucesso.
+
+## Passo 1 (Super-compactação Híbrida): Implementar Lógica Dinâmica de Bitmask e Intervalos no Parser
+- **Arquivos modificados**: [js/parser.js](file:///c:/Users/uel/.gemini/antigravity/scratch/copa-2026-stickers/js/parser.js)
+- **O que mudou**:
+  - Adicionou a função auxiliar `getRanges` para calcular intervalos contíguos de números.
+  - Atualizou `encodeStateToBinary` para calcular o tamanho gerado pelas possuídas (Modo 2) vs faltantes (Modo 3) vs Bitmask (Modo 1), e usar o modo mais curto.
+  - Atualizou `decodeBinaryToState` para decodificar o álbum baseado no cabeçalho do modo selecionado (Modos 1, 2 e 3).
+- **Verificação**: Verificação de sintaxe de código em js/parser.js.
+- **Resultado**: Sucesso.

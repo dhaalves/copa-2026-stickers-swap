@@ -113,30 +113,69 @@ assert.strictEqual(info994.group, 'Grupo L');
 assert.strictEqual(info994.relativeNumber, 20);
 console.log('   ✅ Team & group mapping tests passed.');
 
-// Test 6: Compact code generation & parsing
-console.log('6. Testing compact Base64URL code generation & parsing...');
-const complexState = {
+// Test 6: Compact format - Empty Album (Mode 2, Owned Ranges)
+console.log('6. Testing empty album compression (Mode 2: Owned Ranges)...');
+const emptyState = {
   albumId: 'SA26',
   version: '1',
-  owned: new Set([1, 15, 20, 21, 35, 100, 500, 994]),
-  repeated: new Map([[1, 2], [35, 1], [994, 5]])
+  owned: new Set(),
+  repeated: new Map()
 };
-const compactCode = StickerParser.generateAlbumCode(complexState);
-assert.ok(!compactCode.includes('|'), 'Compact code should not contain |');
-console.log(`   Generated compact code (${compactCode.length} chars): ${compactCode}`);
+const emptyCode = StickerParser.generateAlbumCode(emptyState);
+console.log(`   Empty album code (${emptyCode.length} chars): ${emptyCode}`);
+assert.ok(emptyCode.length <= 10, 'Empty album code should be very short');
+const parsedEmptyState = StickerParser.parseAlbumCode(emptyCode);
+assert.strictEqual(parsedEmptyState.owned.size, 0);
+assert.strictEqual(parsedEmptyState.repeated.size, 0);
+console.log('   ✅ Empty album tests passed.');
 
-const parsedCompactState = StickerParser.parseAlbumCode(compactCode);
-assert.strictEqual(parsedCompactState.owned.size, complexState.owned.size);
-for (const id of complexState.owned) {
-  assert.ok(parsedCompactState.owned.has(id), `Should own sticker ${id}`);
+// Test 7: Compact format - Full Album (Mode 3, Missing Ranges)
+console.log('7. Testing full album compression (Mode 3: Missing Ranges)...');
+const fullOwnedSet = new Set();
+for (let i = 1; i <= 994; i++) {
+  fullOwnedSet.add(i);
 }
-assert.strictEqual(parsedCompactState.repeated.get(1), 2);
-assert.strictEqual(parsedCompactState.repeated.get(35), 1);
-assert.strictEqual(parsedCompactState.repeated.get(994), 5);
-console.log('   ✅ Compact format tests passed.');
+const fullState = {
+  albumId: 'SA26',
+  version: '1',
+  owned: fullOwnedSet,
+  repeated: new Map()
+};
+const fullCode = StickerParser.generateAlbumCode(fullState);
+console.log(`   Full album code (${fullCode.length} chars): ${fullCode}`);
+assert.ok(fullCode.length <= 10, 'Full album code should be very short');
+const parsedFullState = StickerParser.parseAlbumCode(fullCode);
+assert.strictEqual(parsedFullState.owned.size, 994);
+assert.strictEqual(parsedFullState.repeated.size, 0);
+console.log('   ✅ Full album tests passed.');
 
-// Test 7: Backward compatibility with old format
-console.log('7. Testing legacy format backward compatibility...');
+// Test 8: Compact format - Sparse Album (Mode 1, Bitmask)
+console.log('8. Testing sparse album compression (Mode 1: Bitmask)...');
+const sparseOwnedSet = new Set();
+// Populate every second sticker (497 stickers owned, which creates 497 ranges - exceeding bitmask limit)
+for (let i = 1; i <= 994; i += 2) {
+  sparseOwnedSet.add(i);
+}
+const sparseState = {
+  albumId: 'SA26',
+  version: '1',
+  owned: sparseOwnedSet,
+  repeated: new Map([[1, 2], [993, 3]])
+};
+const sparseCode = StickerParser.generateAlbumCode(sparseState);
+console.log(`   Sparse album code (${sparseCode.length} chars): ${sparseCode.substring(0, 40)}...`);
+assert.ok(sparseCode.length > 150, 'Sparse album should fall back to bitmask');
+const parsedSparseState = StickerParser.parseAlbumCode(sparseCode);
+assert.strictEqual(parsedSparseState.owned.size, 497);
+assert.ok(parsedSparseState.owned.has(1));
+assert.ok(!parsedSparseState.owned.has(2));
+assert.ok(parsedSparseState.owned.has(993));
+assert.strictEqual(parsedSparseState.repeated.get(1), 2);
+assert.strictEqual(parsedSparseState.repeated.get(993), 3);
+console.log('   ✅ Sparse album tests passed.');
+
+// Test 9: Legacy format backward compatibility
+console.log('9. Testing legacy format backward compatibility...');
 const legacyCode = 'SA26|1|4,21,24-27|24:1,26:1,42:3';
 const parsedLegacyState = StickerParser.parseAlbumCode(legacyCode);
 assert.ok(parsedLegacyState.owned.has(4));

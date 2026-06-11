@@ -1,32 +1,37 @@
-# Brainstorm: Compactar Código de Compartilhamento do Álbum
+# Brainstorm: Super-compactação do Código de Compartilhamento
 
 ## Goal
-Compactar o código gerado do álbum preenchido para evitar URLs extremamente longas, mantendo compatibilidade com o parser de álbuns existente e sem adicionar dependências externas.
+Tornar a URL de compartilhamento ainda mais curta, especialmente para álbuns com poucas figurinhas (início de coleção) ou quase completos (fim de coleção), sem perder a robustez para álbuns intermediários/esparsos.
 
 ## Constraints
-- **Sem Dependências**: Deve usar apenas JavaScript vanilla compatível com navegadores modernos (sem `pako`, `zlib`, etc.).
-- **Compatibilidade Retroativa**: O aplicativo deve ser capaz de ler tanto os códigos antigos no formato de texto (e.g., `SA26|1|...`) quanto o novo formato compactado.
-- **Eficiência**: A URL deve ser o mais curta possível, mesmo quando o usuário possuir centenas de figurinhas marcadas de forma esparsa (não consecutiva).
+- **Sem Bibliotecas de Compressão Pesadas**: Manter o código JS vanilla limpo e de fácil manutenção.
+- **Compatibilidade Retroativa**: Continuar suportando a importação de códigos de texto legados (`SA26|1|...`).
 
 ## Risks
-- **Tratamento de Erros**: Se um código compactado estiver corrompido ou for inválido, o app deve falhar silenciosamente ou alertar o usuário sem quebrar o carregamento da página.
-- **Caracteres Especiais na URL**: A codificação do buffer deve usar Base64 seguro para URL (Base64URL) para evitar problemas com caracteres como `+`, `/` e `=`.
+- **Desempenho**: O cálculo de intervalos (ranges) deve ser rápido, o que é garantido pela ordenação de arrays nativa do JS.
+- **Limite de Bytes**: Assegurar que o algoritmo escolha dinamicamente a menor representação possível para evitar que a URL exceda o limite físico sob qualquer circunstância.
 
 ## Options
-1. **Opção 1: Codificação por Bitmask + Base64URL (Recomendado)**
-   - Como temos 994 figurinhas fixas, o estado "tenho/não tenho" de cada figurinha pode ser mapeado para 1 bit em uma sequência.
-   - 994 bits / 8 bits por byte = 125 bytes.
-   - As repetidas podem ser salvas em seguida no buffer como pares `[id (2 bytes), qty (1 byte)]`.
-   - Vantagens: Altamente compacta, tamanho determinístico máximo pequeno (~300 bytes), sem dependências, fácil de implementar.
-2. **Opção 2: Compressão de Texto (e.g., LZW simplificado em JS)**
-   - Implementar um algoritmo LZW ou Huffman simples em JS para comprimir a string original `SA26|1|...`.
-   - Vantagens: Reutiliza o formato de texto existente.
-   - Desvantagens: Menos eficiente que o bitmask para dados binários esparsos, código do algoritmo é maior e mais propenso a bugs.
+
+### Opção 1: Formato Híbrido Dinâmico (Recomendado)
+- Definir 3 modos de codificação binária:
+  - **Modo 1 (Bitmask)**: Usado quando o álbum tem muitas figurinhas espalhadas de forma aleatória. Usa 125 bytes fixos para representar o álbum.
+  - **Modo 2 (Owned Ranges)**: Usado quando há poucos intervalos de figurinhas possuídas (e.g. no começo da coleção). Codifica apenas os intervalos de figurinhas que o colecionador possui (4 bytes por intervalo).
+  - **Modo 3 (Missing Ranges)**: Usado quando o colecionador está quase completando o álbum (poucos intervalos de figurinhas faltantes). Codifica os intervalos das figurinhas que faltam (4 bytes por intervalo).
+- O encoder calcula o custo de cada modo em bytes e seleciona automaticamente o menor formato para gerar a URL.
+- **Tamanho Estimado**:
+  - Álbum vazio: 5 bytes (~7 caracteres Base64URL).
+  - Álbum cheio: 5 bytes (~7 caracteres Base64URL).
+  - Coleção iniciante (10 figurinhas esparsas): 45 bytes (~60 caracteres Base64URL).
+  - Pior caso (aleatório esparso intermediário): 128 bytes (~172 caracteres Base64URL).
+
+### Opção 2: Compressão LZW Simples sobre Bitmask
+- Gerar o bitmask fixo de 125 bytes e aplicar um compressor LZW em JavaScript por cima dele.
+- **Desvantagem**: A complexidade do código aumenta significativamente, é mais difícil debugar e, para álbuns quase vazios ou quase cheios, ainda seria maior do que o formato Híbrido Dinâmico.
 
 ## Recommendation
-**Opção 1 (Bitmask + Base64URL)** é a melhor escolha. Ela garante que a lista de figurinhas possuídas ocupe sempre exatamente 125 bytes, independentemente de estarem consecutivas ou separadas, o que reduz drasticamente o tamanho em comparação com listas de texto. Ela é robusta, limpa e extremamente rápida.
+**Opção 1 (Formato Híbrido Dinâmico)** é ideal. Ela atinge níveis extremos de compressão para os estados mais comuns (início e fim de coleção) e tem um limite máximo garantido extremamente pequeno para o pior caso, sem complexidade de algoritmos de compressão de dados genéricos.
 
 ## Acceptance criteria
-1. `StickerParser.generateAlbumCode` retorna o código comprimido em formato Base64URL.
-2. `StickerParser.parseAlbumCode` aceita tanto o formato antigo (`SA26|1|...`) quanto o novo formato binário compactado.
-3. Testes unitários em `js/test_parser.js` são atualizados para verificar se a compactação e descompactação funcionam de ponta a ponta sem perda de dados.
+1. O parser detecta dinamicamente qual modo foi usado pelo primeiro byte do buffer (`0x01`, `0x02` ou `0x03`).
+2. Testes de unidade em `test_parser.js` validam a compactação perfeita e reversibilidade para os três modos (vazio, cheio, esparso).

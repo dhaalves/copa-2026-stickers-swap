@@ -103,19 +103,57 @@ function base64URLToUint8Array(base64url) {
 }
 
 /**
+ * Helper to compute ranges [start, end] from sorted array of numbers
+ */
+function getRanges(numbers) {
+  if (!numbers || numbers.length === 0) return [];
+  const sorted = Array.from(new Set(numbers)).map(Number).sort((a, b) => a - b);
+  const ranges = [];
+  let start = sorted[0];
+  let prev = sorted[0];
+  for (let i = 1; i <= sorted.length; i++) {
+    const current = sorted[i];
+    if (current === prev + 1) {
+      prev = current;
+    } else {
+      ranges.push([start, prev]);
+      if (current !== undefined) {
+        start = current;
+        prev = current;
+      }
+    }
+  }
+  return ranges;
+}
+
+/**
  * Encodes album state into a highly compact binary format.
  */
 function encodeStateToBinary(state, totalStickers) {
-  const ownedBitmask = new Uint8Array(125); // 994 bits / 8 = 124.25 -> 125 bytes
-  if (state.owned) {
-    for (const id of state.owned) {
-      if (id >= 1 && id <= totalStickers) {
-        const idx = id - 1;
-        const byteIdx = Math.floor(idx / 8);
-        const bitIdx = idx % 8;
-        ownedBitmask[byteIdx] |= (1 << bitIdx);
-      }
+  const ownedArr = Array.from(state.owned || []).map(Number).sort((a, b) => a - b);
+  
+  const ownedRanges = getRanges(ownedArr);
+  
+  const missing = [];
+  for (let i = 1; i <= totalStickers; i++) {
+    if (!state.owned || !state.owned.has(i)) {
+      missing.push(i);
     }
+  }
+  const missingRanges = getRanges(missing);
+
+  let mode = 1; // 1 = Bitmask, 2 = Owned Ranges, 3 = Missing Ranges
+  let rangeData = [];
+  
+  const ownedRangeCost = ownedRanges.length * 4;
+  const missingRangeCost = missingRanges.length * 4;
+  
+  if (ownedRangeCost < 125 && ownedRangeCost <= missingRangeCost) {
+    mode = 2;
+    rangeData = ownedRanges;
+  } else if (missingRangeCost < 125) {
+    mode = 3;
+    rangeData = missingRanges;
   }
 
   const repeats = [];
@@ -128,20 +166,60 @@ function encodeStateToBinary(state, totalStickers) {
   }
   repeats.sort((a, b) => a.id - b.id);
 
-  const buffer = new Uint8Array(1 + 125 + 2 + repeats.length * 3);
-  buffer[0] = 1; // version header
-  buffer.set(ownedBitmask, 1);
-
-  const numRepeats = repeats.length;
-  buffer[126] = (numRepeats >> 8) & 0xFF;
-  buffer[127] = numRepeats & 0xFF;
-
-  let offset = 128;
-  for (const rep of repeats) {
-    buffer[offset] = (rep.id >> 8) & 0xFF;
-    buffer[offset + 1] = rep.id & 0xFF;
-    buffer[offset + 2] = Math.min(rep.qty, 255);
-    offset += 3;
+  let buffer;
+  if (mode === 1) {
+    const ownedBitmask = new Uint8Array(125);
+    for (const id of ownedArr) {
+      if (id >= 1 && id <= totalStickers) {
+        const idx = id - 1;
+        const byteIdx = Math.floor(idx / 8);
+        const bitIdx = idx % 8;
+        ownedBitmask[byteIdx] |= (1 << bitIdx);
+      }
+    }
+    buffer = new Uint8Array(1 + 125 + 2 + repeats.length * 3);
+    buffer[0] = 1; // Mode 1
+    buffer.set(ownedBitmask, 1);
+    
+    const numRepeats = repeats.length;
+    buffer[126] = (numRepeats >> 8) & 0xFF;
+    buffer[127] = numRepeats & 0xFF;
+    
+    let offset = 128;
+    for (const rep of repeats) {
+      buffer[offset] = (rep.id >> 8) & 0xFF;
+      buffer[offset + 1] = rep.id & 0xFF;
+      buffer[offset + 2] = Math.min(rep.qty, 255);
+      offset += 3;
+    }
+  } else {
+    const numRanges = rangeData.length;
+    buffer = new Uint8Array(1 + 2 + numRanges * 4 + 2 + repeats.length * 3);
+    buffer[0] = mode; // Mode 2 or 3
+    
+    buffer[1] = (numRanges >> 8) & 0xFF;
+    buffer[2] = numRanges & 0xFF;
+    
+    let offset = 3;
+    for (const r of rangeData) {
+      buffer[offset] = (r[0] >> 8) & 0xFF;
+      buffer[offset + 1] = r[0] & 0xFF;
+      buffer[offset + 2] = (r[1] >> 8) & 0xFF;
+      buffer[offset + 3] = r[1] & 0xFF;
+      offset += 4;
+    }
+    
+    const numRepeats = repeats.length;
+    buffer[offset] = (numRepeats >> 8) & 0xFF;
+    buffer[offset + 1] = numRepeats & 0xFF;
+    offset += 2;
+    
+    for (const rep of repeats) {
+      buffer[offset] = (rep.id >> 8) & 0xFF;
+      buffer[offset + 1] = rep.id & 0xFF;
+      buffer[offset + 2] = Math.min(rep.qty, 255);
+      offset += 3;
+    }
   }
 
   return buffer;
@@ -158,31 +236,81 @@ function decodeBinaryToState(buffer, totalStickers) {
     repeated: new Map()
   };
 
-  if (buffer.length < 128) {
+  if (buffer.length < 5) {
     return state;
   }
 
-  const version = buffer[0];
-  const ownedBitmask = buffer.subarray(1, 126);
+  const mode = buffer[0];
 
-  for (let idx = 0; idx < totalStickers; idx++) {
-    const byteIdx = Math.floor(idx / 8);
-    const bitIdx = idx % 8;
-    if ((ownedBitmask[byteIdx] & (1 << bitIdx)) !== 0) {
-      state.owned.add(idx + 1);
+  if (mode === 1) {
+    if (buffer.length < 128) return state;
+    const ownedBitmask = buffer.subarray(1, 126);
+    for (let idx = 0; idx < totalStickers; idx++) {
+      const byteIdx = Math.floor(idx / 8);
+      const bitIdx = idx % 8;
+      if ((ownedBitmask[byteIdx] & (1 << bitIdx)) !== 0) {
+        state.owned.add(idx + 1);
+      }
     }
-  }
+    
+    const numRepeats = (buffer[126] << 8) | buffer[127];
+    let offset = 128;
+    for (let i = 0; i < numRepeats; i++) {
+      if (offset + 2 >= buffer.length) break;
+      const id = (buffer[offset] << 8) | buffer[offset + 1];
+      const qty = buffer[offset + 2];
+      if (id >= 1 && id <= totalStickers && qty > 0) {
+        state.repeated.set(id, qty);
+      }
+      offset += 3;
+    }
+  } else if (mode === 2 || mode === 3) {
+    const numRanges = (buffer[1] << 8) | buffer[2];
+    let offset = 3;
+    const ranges = [];
+    for (let i = 0; i < numRanges; i++) {
+      if (offset + 3 >= buffer.length) break;
+      const start = (buffer[offset] << 8) | buffer[offset + 1];
+      const end = (buffer[offset + 2] << 8) | buffer[offset + 3];
+      ranges.push([start, end]);
+      offset += 4;
+    }
 
-  const numRepeats = (buffer[126] << 8) | buffer[127];
-  let offset = 128;
-  for (let i = 0; i < numRepeats; i++) {
-    if (offset + 2 >= buffer.length) break;
-    const id = (buffer[offset] << 8) | buffer[offset + 1];
-    const qty = buffer[offset + 2];
-    if (id >= 1 && id <= totalStickers && qty > 0) {
-      state.repeated.set(id, qty);
+    if (mode === 2) {
+      for (const r of ranges) {
+        for (let id = r[0]; id <= r[1]; id++) {
+          if (id >= 1 && id <= totalStickers) {
+            state.owned.add(id);
+          }
+        }
+      }
+    } else {
+      const missingSet = new Set();
+      for (const r of ranges) {
+        for (let id = r[0]; id <= r[1]; id++) {
+          missingSet.add(id);
+        }
+      }
+      for (let id = 1; id <= totalStickers; id++) {
+        if (!missingSet.has(id)) {
+          state.owned.add(id);
+        }
+      }
     }
-    offset += 3;
+
+    if (offset + 1 < buffer.length) {
+      const numRepeats = (buffer[offset] << 8) | buffer[offset + 1];
+      offset += 2;
+      for (let i = 0; i < numRepeats; i++) {
+        if (offset + 2 >= buffer.length) break;
+        const id = (buffer[offset] << 8) | buffer[offset + 1];
+        const qty = buffer[offset + 2];
+        if (id >= 1 && id <= totalStickers && qty > 0) {
+          state.repeated.set(id, qty);
+        }
+        offset += 3;
+      }
+    }
   }
 
   return state;

@@ -1,37 +1,30 @@
-# Plano de Implementação: Compactar Código de Compartilhamento do Álbum
+# Plano de Implementação: Super-compactação do Código do Álbum
 
 ## Goal
-Substituir o formato de geração do código do álbum por um formato binário compactado usando Bitmask (para figurinhas possuídas) + lista de repetidas codificado em Base64URL. Garantir que o parser continue aceitando o formato antigo por compatibilidade.
-
-## Assumptions
-- O total de figurinhas é fixo em 994 (definido em `StickerParser.TOTAL_STICKERS`).
-- O Base64URL gerado não conterá o caractere `|`, o que nos permite diferenciar os dois formatos.
+Implementar codificação híbrida (Modos: Bitmask, Owned Ranges, Missing Ranges) para reduzir a URL a até 7 caracteres em álbuns vazios/completos e cerca de 60 caracteres em coleções iniciais, garantindo compatibilidade com códigos legados.
 
 ## Plan
 
-### Step 1: Atualizar o arquivo do Parser com algoritmos de compactação
+### Step 1: Atualizar js/parser.js com a compressão híbrida
 - **Files**: [js/parser.js](file:///c:/Users/uel/.gemini/antigravity/scratch/copa-2026-stickers/js/parser.js)
 - **Change**:
-  - Implementar funções auxiliares de codificação/decodificação Base64URL para `Uint8Array`.
-  - Atualizar `StickerParser.generateAlbumCode` para converter o estado do álbum em um buffer binário (`Uint8Array`) e retornar a string codificada em Base64URL.
-  - Atualizar `StickerParser.parseAlbumCode` para verificar se a string contém o caractere `|`. Se não contiver, decodificar a partir do formato binário compactado; caso contrário, decodificar usando o parseador antigo.
-- **Verify**: Garantir que as funções não geram erros de sintaxe ou runtime básico.
+  - Adicionar a função auxiliar `getRanges(numbers)` para agrupar números em pares `[start, end]`.
+  - Atualizar `encodeStateToBinary` para calcular o menor tamanho entre Bitmask (125 bytes), Owned Ranges (intervalos de possuídas * 4 bytes) e Missing Ranges (intervalos de faltantes * 4 bytes), escolhendo a melhor opção.
+  - Atualizar `decodeBinaryToState` para interpretar o cabeçalho (`0x01`, `0x02` ou `0x03`) e descompactar o álbum com base no modo selecionado.
+- **Verify**: Verificação estática da lógica.
 
-### Step 2: Atualizar os testes unitários do Parser
+### Step 2: Expandir a suíte de testes em js/test_parser.js
 - **Files**: [js/test_parser.js](file:///c:/Users/uel/.gemini/antigravity/scratch/copa-2026-stickers/js/test_parser.js)
 - **Change**:
-  - Adicionar um novo caso de teste em `js/test_parser.js` que cria um estado de álbum com dados esparsos e repetidas, gera o código comprimido e verifica se ele é descompactado de volta exatamente para o mesmo estado inicial (cobrindo owned e repeated).
-  - Adicionar um teste de compatibilidade garantindo que o formato antigo ainda é analisado perfeitamente.
-- **Verify**: Executar `node js/test_parser.js` e verificar se todos os testes passam com sucesso.
+  - Atualizar e expandir testes unitários para cobrir todos os três modos novos:
+    - Estado vazio (deve usar modo 2 de ranges e ter tamanho de string mínimo).
+    - Estado cheio (deve usar modo 3 de ranges e ter tamanho de string mínimo).
+    - Estado esparso e complexo (deve usar o fallback de bitmask do modo 1 se os intervalos forem muitos).
+  - Executar `node js/test_parser.js` para garantir que a compactação e decodificação funcionam de forma idêntica em todos os casos e que a compatibilidade com o formato legado é preservada.
 
-### Step 3: Validar no Aplicativo
-- **Files**: Ninguém (apenas validação manual e do browser subagent)
-- **Change**: Nenhuma mudança de código além de abrir a página e testar o fluxo completo.
-- **Verify**: Copiar o link com algumas figurinhas marcadas, abrir o link em uma nova aba privada (ou simular no subagent) e verificar se o estado do parceiro é carregado e comparado de forma idêntica.
+### Step 3: Validação do fluxo no navegador
+- **Files**: Ninguém (validação manual do fluxo).
+- **Verify**: Abrir o navegador, marcar algumas figurinhas, copiar o link compactado (que agora deve ser consideravelmente menor), abrir em outra aba e testar se a decodificação carrega corretamente.
 
-## Risks & mitigations
-- **Compatibilidade**: Testado explicitamente no Step 2 garantindo que strings antigas geradas anteriormente ainda funcionam e importam normalmente.
-- **Ambiente sem btoa/atob**: Os navegadores modernos e o Node.js v16+ suportam as APIs necessárias (`btoa` / `atob`).
-
-## Rollback plan
-- Descartar alterações usando `git checkout js/parser.js js/test_parser.js`
+## Approval
+**Approve this plan? Reply APPROVED if it looks good.**
