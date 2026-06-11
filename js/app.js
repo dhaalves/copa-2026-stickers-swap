@@ -49,6 +49,7 @@ document.addEventListener('DOMContentLoaded', () => {
         sectionImport: document.getElementById('section-import'),
         myCodeTextarea: document.getElementById('my-code-textarea'),
         btnCopyMyCode: document.getElementById('btn-copy-my-code'),
+        btnCopyMyLink: document.getElementById('btn-copy-my-link'),
         gridRangeSelector: document.getElementById('grid-range-selector'),
         stickersGrid: document.getElementById('stickers-grid-container'),
         partnerCodeTextarea: document.getElementById('partner-code-textarea'),
@@ -743,6 +744,42 @@ document.addEventListener('DOMContentLoaded', () => {
             }).catch(err => {
                 console.error("Falha ao copiar código:", err);
             });
+        });
+
+        // Copy/Share Album Link
+        el.btnCopyMyLink.addEventListener('click', () => {
+            const code = el.myCodeTextarea.value;
+            const shareUrl = `${window.location.origin}${window.location.pathname}?partner=${encodeURIComponent(code)}`;
+
+            const performClipboardFallback = () => {
+                navigator.clipboard.writeText(shareUrl).then(() => {
+                    const originalHTML = el.btnCopyMyLink.innerHTML;
+                    el.btnCopyMyLink.innerHTML = '✅';
+                    el.btnCopyMyLink.style.borderColor = 'var(--accent-primary)';
+                    el.btnCopyMyLink.style.background = 'var(--accent-primary-glow)';
+                    setTimeout(() => {
+                        el.btnCopyMyLink.innerHTML = originalHTML;
+                        el.btnCopyMyLink.style.borderColor = '';
+                        el.btnCopyMyLink.style.background = '';
+                    }, 1500);
+                }).catch(err => {
+                    console.error("Falha ao copiar link:", err);
+                });
+            };
+
+            if (navigator.share) {
+                navigator.share({
+                    title: 'Stickers Swap 2026',
+                    text: 'Confira as minhas figurinhas e vamos comparar nossos álbuns!',
+                    url: shareUrl
+                }).catch(err => {
+                    if (err.name !== 'AbortError') {
+                        performClipboardFallback();
+                    }
+                });
+            } else {
+                performClipboardFallback();
+            }
         });
 
         // Confirm Import from Tab
