@@ -696,8 +696,6 @@ document.addEventListener('DOMContentLoaded', () => {
             msg += `*Eu recebo de você*:\n👉 Nenhuma repetida que eu precise\n\n`;
         }
 
-        msg += `Gerado de forma rápida e local no aplicativo *Stickers Swap FWC 2026*.`;
-
         // 1. Copy to clipboard
         navigator.clipboard.writeText(msg).then(() => {
             // Temporary button state change
