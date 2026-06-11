@@ -38,7 +38,14 @@ const stateForGen = {
   repeated: new Map([[24, 1], [26, 1], [42, 3]])
 };
 const generatedCode = StickerParser.generateAlbumCode(stateForGen);
-assert.strictEqual(generatedCode, 'SA26|1|4,21,24-27|24:1,26:1,42:3');
+const parsedGeneratedState = StickerParser.parseAlbumCode(generatedCode);
+assert.strictEqual(parsedGeneratedState.owned.size, stateForGen.owned.size);
+for (const id of stateForGen.owned) {
+  assert.ok(parsedGeneratedState.owned.has(id));
+}
+for (const [id, qty] of stateForGen.repeated.entries()) {
+  assert.strictEqual(parsedGeneratedState.repeated.get(id), qty);
+}
 console.log('   ✅ Code generation passed.');
 
 // Test 4: Album Matching
@@ -105,5 +112,37 @@ assert.strictEqual(info994.flag, '🇵🇦');
 assert.strictEqual(info994.group, 'Grupo L');
 assert.strictEqual(info994.relativeNumber, 20);
 console.log('   ✅ Team & group mapping tests passed.');
+
+// Test 6: Compact code generation & parsing
+console.log('6. Testing compact Base64URL code generation & parsing...');
+const complexState = {
+  albumId: 'SA26',
+  version: '1',
+  owned: new Set([1, 15, 20, 21, 35, 100, 500, 994]),
+  repeated: new Map([[1, 2], [35, 1], [994, 5]])
+};
+const compactCode = StickerParser.generateAlbumCode(complexState);
+assert.ok(!compactCode.includes('|'), 'Compact code should not contain |');
+console.log(`   Generated compact code (${compactCode.length} chars): ${compactCode}`);
+
+const parsedCompactState = StickerParser.parseAlbumCode(compactCode);
+assert.strictEqual(parsedCompactState.owned.size, complexState.owned.size);
+for (const id of complexState.owned) {
+  assert.ok(parsedCompactState.owned.has(id), `Should own sticker ${id}`);
+}
+assert.strictEqual(parsedCompactState.repeated.get(1), 2);
+assert.strictEqual(parsedCompactState.repeated.get(35), 1);
+assert.strictEqual(parsedCompactState.repeated.get(994), 5);
+console.log('   ✅ Compact format tests passed.');
+
+// Test 7: Backward compatibility with old format
+console.log('7. Testing legacy format backward compatibility...');
+const legacyCode = 'SA26|1|4,21,24-27|24:1,26:1,42:3';
+const parsedLegacyState = StickerParser.parseAlbumCode(legacyCode);
+assert.ok(parsedLegacyState.owned.has(4));
+assert.ok(parsedLegacyState.owned.has(21));
+assert.ok(parsedLegacyState.owned.has(25));
+assert.strictEqual(parsedLegacyState.repeated.get(42), 3);
+console.log('   ✅ Legacy format compatibility passed.');
 
 console.log('\n🎉 All tests passed successfully!');

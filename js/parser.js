@@ -68,6 +68,126 @@ const TEAMS = [
   { code: 'PAN', flag: '🇵🇦', name: 'Panamá', group: 'Grupo L' }
 ];
 
+/**
+ * Helper to convert Uint8Array to Base64URL string
+ */
+function uint8ArrayToBase64URL(uint8) {
+  let binary = '';
+  const len = uint8.byteLength;
+  for (let i = 0; i < len; i++) {
+    binary += String.fromCharCode(uint8[i]);
+  }
+  const base64 = typeof btoa !== 'undefined'
+    ? btoa(binary)
+    : Buffer.from(binary, 'binary').toString('base64');
+  return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+/**
+ * Helper to convert Base64URL string to Uint8Array
+ */
+function base64URLToUint8Array(base64url) {
+  let base64 = base64url.replace(/-/g, '+').replace(/_/g, '/');
+  while (base64.length % 4) {
+    base64 += '=';
+  }
+  const binary = typeof atob !== 'undefined'
+    ? atob(base64)
+    : Buffer.from(base64, 'base64').toString('binary');
+  const len = binary.length;
+  const bytes = new Uint8Array(len);
+  for (let i = 0; i < len; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return bytes;
+}
+
+/**
+ * Encodes album state into a highly compact binary format.
+ */
+function encodeStateToBinary(state, totalStickers) {
+  const ownedBitmask = new Uint8Array(125); // 994 bits / 8 = 124.25 -> 125 bytes
+  if (state.owned) {
+    for (const id of state.owned) {
+      if (id >= 1 && id <= totalStickers) {
+        const idx = id - 1;
+        const byteIdx = Math.floor(idx / 8);
+        const bitIdx = idx % 8;
+        ownedBitmask[byteIdx] |= (1 << bitIdx);
+      }
+    }
+  }
+
+  const repeats = [];
+  if (state.repeated) {
+    for (const [id, qty] of state.repeated.entries()) {
+      if (qty > 0 && id >= 1 && id <= totalStickers) {
+        repeats.push({ id, qty });
+      }
+    }
+  }
+  repeats.sort((a, b) => a.id - b.id);
+
+  const buffer = new Uint8Array(1 + 125 + 2 + repeats.length * 3);
+  buffer[0] = 1; // version header
+  buffer.set(ownedBitmask, 1);
+
+  const numRepeats = repeats.length;
+  buffer[126] = (numRepeats >> 8) & 0xFF;
+  buffer[127] = numRepeats & 0xFF;
+
+  let offset = 128;
+  for (const rep of repeats) {
+    buffer[offset] = (rep.id >> 8) & 0xFF;
+    buffer[offset + 1] = rep.id & 0xFF;
+    buffer[offset + 2] = Math.min(rep.qty, 255);
+    offset += 3;
+  }
+
+  return buffer;
+}
+
+/**
+ * Decodes album state from the compact binary format.
+ */
+function decodeBinaryToState(buffer, totalStickers) {
+  const state = {
+    albumId: 'SA26',
+    version: '1',
+    owned: new Set(),
+    repeated: new Map()
+  };
+
+  if (buffer.length < 128) {
+    return state;
+  }
+
+  const version = buffer[0];
+  const ownedBitmask = buffer.subarray(1, 126);
+
+  for (let idx = 0; idx < totalStickers; idx++) {
+    const byteIdx = Math.floor(idx / 8);
+    const bitIdx = idx % 8;
+    if ((ownedBitmask[byteIdx] & (1 << bitIdx)) !== 0) {
+      state.owned.add(idx + 1);
+    }
+  }
+
+  const numRepeats = (buffer[126] << 8) | buffer[127];
+  let offset = 128;
+  for (let i = 0; i < numRepeats; i++) {
+    if (offset + 2 >= buffer.length) break;
+    const id = (buffer[offset] << 8) | buffer[offset + 1];
+    const qty = buffer[offset + 2];
+    if (id >= 1 && id <= totalStickers && qty > 0) {
+      state.repeated.set(id, qty);
+    }
+    offset += 3;
+  }
+
+  return state;
+}
+
 const StickerParser = {
   TOTAL_STICKERS: 994,
   ALBUM_ID: 'SA26',
@@ -138,63 +258,74 @@ const StickerParser = {
       return result;
     }
 
-    const parts = codeStr.trim().split('|');
-    if (parts.length < 3) {
-      return result;
-    }
+    const trimmed = codeStr.trim();
 
-    result.albumId = parts[0] || this.ALBUM_ID;
-    result.version = parts[1] || this.VERSION;
+    if (trimmed.includes('|')) {
+      const parts = trimmed.split('|');
+      if (parts.length < 3) {
+        return result;
+      }
 
-    const ownedPart = parts[2];
-    if (ownedPart) {
-      const items = ownedPart.split(',');
-      for (const item of items) {
-        if (!item) continue;
-        if (item.includes('-')) {
-          const [startStr, endStr] = item.split('-');
-          const start = parseInt(startStr, 10);
-          const end = parseInt(endStr, 10);
-          if (!isNaN(start) && !isNaN(end)) {
-            const min = Math.min(start, end);
-            const max = Math.max(start, end);
-            for (let i = min; i <= max; i++) {
-              if (i >= 1 && i <= this.TOTAL_STICKERS) {
-                result.owned.add(i);
+      result.albumId = parts[0] || this.ALBUM_ID;
+      result.version = parts[1] || this.VERSION;
+
+      const ownedPart = parts[2];
+      if (ownedPart) {
+        const items = ownedPart.split(',');
+        for (const item of items) {
+          if (!item) continue;
+          if (item.includes('-')) {
+            const [startStr, endStr] = item.split('-');
+            const start = parseInt(startStr, 10);
+            const end = parseInt(endStr, 10);
+            if (!isNaN(start) && !isNaN(end)) {
+              const min = Math.min(start, end);
+              const max = Math.max(start, end);
+              for (let i = min; i <= max; i++) {
+                if (i >= 1 && i <= this.TOTAL_STICKERS) {
+                  result.owned.add(i);
+                }
               }
             }
-          }
-        } else {
-          const val = parseInt(item, 10);
-          if (!isNaN(val) && val >= 1 && val <= this.TOTAL_STICKERS) {
-            result.owned.add(val);
-          }
-        }
-      }
-    }
-
-    const repeatedPart = parts[3];
-    if (repeatedPart) {
-      const items = repeatedPart.split(',');
-      for (const item of items) {
-        if (!item) continue;
-        if (item.includes(':')) {
-          const [idStr, qtyStr] = item.split(':');
-          const id = parseInt(idStr, 10);
-          const qty = parseInt(qtyStr, 10);
-          if (!isNaN(id) && !isNaN(qty) && id >= 1 && id <= this.TOTAL_STICKERS && qty > 0) {
-            result.repeated.set(id, qty);
-          }
-        } else {
-          const id = parseInt(item, 10);
-          if (!isNaN(id) && id >= 1 && id <= this.TOTAL_STICKERS) {
-            result.repeated.set(id, 1);
+          } else {
+            const val = parseInt(item, 10);
+            if (!isNaN(val) && val >= 1 && val <= this.TOTAL_STICKERS) {
+              result.owned.add(val);
+            }
           }
         }
       }
-    }
 
-    return result;
+      const repeatedPart = parts[3];
+      if (repeatedPart) {
+        const items = repeatedPart.split(',');
+        for (const item of items) {
+          if (!item) continue;
+          if (item.includes(':')) {
+            const [idStr, qtyStr] = item.split(':');
+            const id = parseInt(idStr, 10);
+            const qty = parseInt(qtyStr, 10);
+            if (!isNaN(id) && !isNaN(qty) && id >= 1 && id <= this.TOTAL_STICKERS && qty > 0) {
+              result.repeated.set(id, qty);
+            }
+          } else {
+            const id = parseInt(item, 10);
+            if (!isNaN(id) && id >= 1 && id <= this.TOTAL_STICKERS) {
+              result.repeated.set(id, 1);
+            }
+          }
+        }
+      }
+      return result;
+    } else {
+      try {
+        const bytes = base64URLToUint8Array(trimmed);
+        return decodeBinaryToState(bytes, this.TOTAL_STICKERS);
+      } catch (e) {
+        console.error("Failed to decode binary album code:", e);
+        return result;
+      }
+    }
   },
 
   /**
@@ -235,25 +366,31 @@ const StickerParser = {
    * @returns {string}
    */
   generateAlbumCode(state) {
-    const albumId = state.albumId || this.ALBUM_ID;
-    const version = state.version || this.VERSION;
-    
-    const ownedArr = Array.from(state.owned || []);
-    const ownedStr = this.compressToRanges(ownedArr);
-    
-    const repeatedArr = [];
-    if (state.repeated) {
-      const sortedKeys = Array.from(state.repeated.keys()).sort((a, b) => a - b);
-      for (const key of sortedKeys) {
-        const qty = state.repeated.get(key);
-        if (qty > 0) {
-          repeatedArr.push(`${key}:${qty}`);
+    try {
+      const bytes = encodeStateToBinary(state, this.TOTAL_STICKERS);
+      return uint8ArrayToBase64URL(bytes);
+    } catch (e) {
+      console.error("Failed to generate binary album code, falling back to text:", e);
+      const albumId = state.albumId || this.ALBUM_ID;
+      const version = state.version || this.VERSION;
+      
+      const ownedArr = Array.from(state.owned || []);
+      const ownedStr = this.compressToRanges(ownedArr);
+      
+      const repeatedArr = [];
+      if (state.repeated) {
+        const sortedKeys = Array.from(state.repeated.keys()).sort((a, b) => a - b);
+        for (const key of sortedKeys) {
+          const qty = state.repeated.get(key);
+          if (qty > 0) {
+            repeatedArr.push(`${key}:${qty}`);
+          }
         }
       }
+      const repeatedStr = repeatedArr.join(',');
+      
+      return `${albumId}|${version}|${ownedStr}|${repeatedStr}`;
     }
-    const repeatedStr = repeatedArr.join(',');
-    
-    return `${albumId}|${version}|${ownedStr}|${repeatedStr}`;
   },
 
   /**

@@ -1,44 +1,37 @@
-# Plano de Implementação: Compartilhar Link do Álbum Preenchido
+# Plano de Implementação: Compactar Código de Compartilhamento do Álbum
 
 ## Goal
-Adicionar um botão de compartilhamento de link do álbum preenchido no cabeçalho do aplicativo. Quando clicado, ele tentará usar a Web Share API (para uma experiência nativa em dispositivos móveis) ou copiará o link diretamente para a área de transferência com feedback visual. O link gerado conterá o código do álbum no parâmetro `partner`, permitindo que o destinatário abra o aplicativo e compare as figurinhas automaticamente.
+Substituir o formato de geração do código do álbum por um formato binário compactado usando Bitmask (para figurinhas possuídas) + lista de repetidas codificado em Base64URL. Garantir que o parser continue aceitando o formato antigo por compatibilidade.
 
 ## Assumptions
-- O estado atual do álbum está acessível via `state.myAlbum` no arquivo `js/app.js`.
-- O método `StickerParser.generateAlbumCode` é usado para gerar o código comprimido.
-- A função `checkQueryParams()` na inicialização do app já lê o parâmetro `partner` da URL para realizar a comparação automática.
+- O total de figurinhas é fixo em 994 (definido em `StickerParser.TOTAL_STICKERS`).
+- O Base64URL gerado não conterá o caractere `|`, o que nos permite diferenciar os dois formatos.
 
 ## Plan
 
-### Step 1: Atualizar o HTML
-- **Files**: [index.html](file:///c:/Users/uel/.gemini/antigravity/scratch/copa-2026-stickers/index.html)
+### Step 1: Atualizar o arquivo do Parser com algoritmos de compactação
+- **Files**: [js/parser.js](file:///c:/Users/uel/.gemini/antigravity/scratch/copa-2026-stickers/js/parser.js)
 - **Change**:
-  - Modificar a linha 31 para envolver os botões de ação em uma div `.header-actions`.
-  - Mudar o botão `#btn-copy-my-code` para ter o ícone `📋` e o título `"Copiar Código do Álbum (Copia & Cola)"`.
-  - Adicionar o botão `#btn-copy-my-link` com a classe `header-share-btn`, o ícone `🔗` e o título `"Copiar Link do Álbum"`.
-- **Verify**: Inspecionar visualmente o HTML ou abrir a página para ver se os dois botões aparecem no cabeçalho.
+  - Implementar funções auxiliares de codificação/decodificação Base64URL para `Uint8Array`.
+  - Atualizar `StickerParser.generateAlbumCode` para converter o estado do álbum em um buffer binário (`Uint8Array`) e retornar a string codificada em Base64URL.
+  - Atualizar `StickerParser.parseAlbumCode` para verificar se a string contém o caractere `|`. Se não contiver, decodificar a partir do formato binário compactado; caso contrário, decodificar usando o parseador antigo.
+- **Verify**: Garantir que as funções não geram erros de sintaxe ou runtime básico.
 
-### Step 2: Estilizar os Botões de Ação no Cabeçalho
-- **Files**: [style.css](file:///c:/Users/uel/.gemini/antigravity/scratch/copa-2026-stickers/style.css)
+### Step 2: Atualizar os testes unitários do Parser
+- **Files**: [js/test_parser.js](file:///c:/Users/uel/.gemini/antigravity/scratch/copa-2026-stickers/js/test_parser.js)
 - **Change**:
-  - Adicionar uma regra para `.header-actions` com `display: flex; gap: 8px; align-items: center;` para posicionar os dois botões redondos lado a lado harmoniosamente.
-- **Verify**: Abrir o aplicativo localmente e verificar o alinhamento dos botões no cabeçalho.
+  - Adicionar um novo caso de teste em `js/test_parser.js` que cria um estado de álbum com dados esparsos e repetidas, gera o código comprimido e verifica se ele é descompactado de volta exatamente para o mesmo estado inicial (cobrindo owned e repeated).
+  - Adicionar um teste de compatibilidade garantindo que o formato antigo ainda é analisado perfeitamente.
+- **Verify**: Executar `node js/test_parser.js` e verificar se todos os testes passam com sucesso.
 
-### Step 3: Implementar a Lógica de Compartilhamento de Link
-- **Files**: [js/app.js](file:///c:/Users/uel/.gemini/antigravity/scratch/copa-2026-stickers/js/app.js)
-- **Change**:
-  - Adicionar a referência de `btnCopyMyLink` ao objeto `el` mapeando `document.getElementById('btn-copy-my-link')`.
-  - Vincular um evento de clique a `btnCopyMyLink` na função `bindEvents`.
-  - No handler do clique, obter o código comprimido do álbum.
-  - Montar a URL de compartilhamento: `const shareUrl = `${window.location.origin}${window.location.pathname}?partner=${encodeURIComponent(code)}`;`
-  - Se `navigator.share` estiver disponível, compartilhar usando a API nativa.
-  - Caso contrário (ou em caso de erro na API nativa), usar `navigator.clipboard.writeText(shareUrl)` para copiar para o clipboard.
-  - Exibir feedback visual de sucesso temporário (trocar o ícone do botão para `✅` e estilizar a borda/fundo temporariamente como é feito para o outro botão, restaurando após 1500ms).
-- **Verify**: Testar a funcionalidade de cópia de link gerada e colar em uma nova aba do navegador para verificar se ela pré-carrega o álbum compartilhado como parceiro e abre a aba de comparação.
+### Step 3: Validar no Aplicativo
+- **Files**: Ninguém (apenas validação manual e do browser subagent)
+- **Change**: Nenhuma mudança de código além de abrir a página e testar o fluxo completo.
+- **Verify**: Copiar o link com algumas figurinhas marcadas, abrir o link em uma nova aba privada (ou simular no subagent) e verificar se o estado do parceiro é carregado e comparado de forma idêntica.
 
 ## Risks & mitigations
-- **Comprimento da URL**: Para álbuns extremamente cheios, a URL pode ficar longa, mas como o formato do código do álbum é altamente otimizado por compressão de intervalos (`4,21,24-27`), o tamanho ficará muito abaixo do limite do navegador (~2000 caracteres).
-- **Incompatibilidade do navigator.share**: Em navegadores desktop normais ou contextos não-seguros (HTTP), `navigator.share` não é suportado. Mitigado usando o fallback robusto de cópia para clipboard com tratamento de erros.
+- **Compatibilidade**: Testado explicitamente no Step 2 garantindo que strings antigas geradas anteriormente ainda funcionam e importam normalmente.
+- **Ambiente sem btoa/atob**: Os navegadores modernos e o Node.js v16+ suportam as APIs necessárias (`btoa` / `atob`).
 
 ## Rollback plan
-- Descartar as alterações feitas usando `git checkout index.html style.css js/app.js` se algo der errado.
+- Descartar alterações usando `git checkout js/parser.js js/test_parser.js`
