@@ -407,12 +407,14 @@ const StickerParser = {
             const start = parseInt(startStr, 10);
             const end = parseInt(endStr, 10);
             if (!isNaN(start) && !isNaN(end)) {
-              const min = Math.min(start, end);
-              const max = Math.max(start, end);
+              let min = Math.min(start, end);
+              let max = Math.max(start, end);
+
+              min = Math.max(1, min);
+              max = Math.min(this.TOTAL_STICKERS, max);
+
               for (let i = min; i <= max; i++) {
-                if (i >= 1 && i <= this.TOTAL_STICKERS) {
-                  result.owned.add(i);
-                }
+                result.owned.add(i);
               }
             }
           } else {

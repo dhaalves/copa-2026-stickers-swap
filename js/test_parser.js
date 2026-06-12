@@ -23,6 +23,19 @@ assert.strictEqual(state1.repeated.get(26), 1);
 assert.strictEqual(state1.repeated.get(42), 3);
 console.log('   ✅ Basic parsing passed.');
 
+// Test 1.5: DoS Protection with huge ranges
+console.log('1.5. Testing huge range DoS protection...');
+const start = performance.now();
+const dosCode = 'SA26|1|1-999999999|';
+const dosState = StickerParser.parseAlbumCode(dosCode);
+const duration = performance.now() - start;
+assert.ok(duration < 100, `Parsing took too long: ${duration}ms`);
+// Verify that it only loaded up to TOTAL_STICKERS (685)
+assert.ok(dosState.owned.has(1));
+assert.ok(dosState.owned.has(StickerParser.TOTAL_STICKERS));
+assert.ok(!dosState.owned.has(StickerParser.TOTAL_STICKERS + 1));
+console.log('   ✅ Huge range parsing passed quickly.');
+
 // Test 2: Compression of ranges
 console.log('2. Testing range compression...');
 const compressed = StickerParser.compressToRanges([4, 21, 24, 25, 26, 27, 30]);
