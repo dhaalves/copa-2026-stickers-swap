@@ -203,6 +203,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 <span class="team-progress">${fwcOwned}/20</span>
                 <span class="chevron-icon">▼</span>
             </div>
+            <div class="team-progress-bar-container">
+                <div class="team-progress-bar-fill" style="width: ${(fwcOwned / 20) * 100}%"></div>
+            </div>
         `;
 
         const fwcGrid = document.createElement('div');
@@ -239,6 +242,9 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="team-header-right">
                 <span class="team-progress">${ccOwned}/14</span>
                 <span class="chevron-icon">▼</span>
+            </div>
+            <div class="team-progress-bar-container">
+                <div class="team-progress-bar-fill" style="width: ${(ccOwned / 14) * 100}%"></div>
             </div>
         `;
 
@@ -321,6 +327,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="team-header-right">
                     <span class="team-progress">${ownedCount}/20</span>
                     <span class="chevron-icon">▼</span>
+                </div>
+                <div class="team-progress-bar-container">
+                    <div class="team-progress-bar-fill" style="width: ${(ownedCount / 20) * 100}%"></div>
                 </div>
             `;
 
@@ -530,6 +539,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const ownedCount = getOwnedCountInRange(start, end);
         progressEl.textContent = `${ownedCount}/${total}`;
 
+        const progressBarFill = sectionEl.querySelector('.team-progress-bar-fill');
+        if (progressBarFill) {
+            progressBarFill.style.width = `${(ownedCount / total) * 100}%`;
+        }
+
         const headerEl = sectionEl.querySelector(".team-section-header");
         if (headerEl) {
             if (ownedCount === total) {
@@ -710,11 +724,14 @@ document.addEventListener('DOMContentLoaded', () => {
         // 1. Copy to clipboard
         navigator.clipboard.writeText(msg).then(() => {
             // Temporary button state change
-            const originalHTML = el.btnShareWhatsapp.innerHTML;
-            el.btnShareWhatsapp.innerHTML = '<span>✅ Copiado para a Área de Transferência!</span>';
+            const originalNodes = [...el.btnShareWhatsapp.childNodes];
+
+            const span = document.createElement('span');
+            span.textContent = '✅ Copiado para a Área de Transferência!';
+            el.btnShareWhatsapp.replaceChildren(span);
 
             setTimeout(() => {
-                el.btnShareWhatsapp.innerHTML = originalHTML;
+                el.btnShareWhatsapp.replaceChildren(...originalNodes);
 
                 // 2. Open WhatsApp Share Link
                 const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`;
@@ -742,12 +759,12 @@ document.addEventListener('DOMContentLoaded', () => {
         el.btnCopyMyCode.addEventListener('click', () => {
             const code = el.myCodeTextarea.value;
             navigator.clipboard.writeText(code).then(() => {
-                const originalHTML = el.btnCopyMyCode.innerHTML;
-                el.btnCopyMyCode.innerHTML = '✅';
+                const originalNodes = [...el.btnCopyMyCode.childNodes];
+                el.btnCopyMyCode.textContent = '✅';
                 el.btnCopyMyCode.style.borderColor = 'var(--accent-primary)';
                 el.btnCopyMyCode.style.background = 'var(--accent-primary-glow)';
                 setTimeout(() => {
-                    el.btnCopyMyCode.innerHTML = originalHTML;
+                    el.btnCopyMyCode.replaceChildren(...originalNodes);
                     el.btnCopyMyCode.style.borderColor = '';
                     el.btnCopyMyCode.style.background = '';
                 }, 1500);
@@ -763,12 +780,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const performClipboardFallback = () => {
                 navigator.clipboard.writeText(shareUrl).then(() => {
-                    const originalHTML = el.btnCopyMyLink.innerHTML;
-                    el.btnCopyMyLink.innerHTML = '✅';
+                    const originalNodes = [...el.btnCopyMyLink.childNodes];
+                    el.btnCopyMyLink.textContent = '✅';
                     el.btnCopyMyLink.style.borderColor = 'var(--accent-primary)';
                     el.btnCopyMyLink.style.background = 'var(--accent-primary-glow)';
                     setTimeout(() => {
-                        el.btnCopyMyLink.innerHTML = originalHTML;
+                        el.btnCopyMyLink.replaceChildren(...originalNodes);
                         el.btnCopyMyLink.style.borderColor = '';
                         el.btnCopyMyLink.style.background = '';
                     }, 1500);

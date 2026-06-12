@@ -275,23 +275,55 @@ function decodeBinaryToState(buffer, totalStickers) {
     const ranges = [];
     for (let i = 0; i < numRanges; i++) {
       if (offset + 3 >= buffer.length) break;
-      const start = (buffer[offset] << 8) | buffer[offset + 1];
-      const end = (buffer[offset + 2] << 8) | buffer[offset + 3];
-      ranges.push([start, end]);
+      const startRaw = (buffer[offset] << 8) | buffer[offset + 1];
+      const endRaw = (buffer[offset + 2] << 8) | buffer[offset + 3];
+
+      const min = Math.max(1, Math.min(startRaw, endRaw));
+      const max = Math.min(totalStickers, Math.max(startRaw, endRaw));
+
+      if (min <= max) {
+        ranges.push([min, max]);
+      }
       offset += 4;
     }
 
     if (mode === 2) {
-      for (const r of ranges) {
-        for (let id = r[0]; id <= r[1]; id++) {
-          if (id >= 1 && id <= totalStickers) {
-            state.owned.add(id);
+      ranges.sort((a, b) => a[0] - b[0]);
+      const mergedRanges = [];
+      if (ranges.length > 0) {
+        let current = ranges[0];
+        for (let i = 1; i < ranges.length; i++) {
+          if (ranges[i][0] <= current[1] + 1) {
+            current[1] = Math.max(current[1], ranges[i][1]);
+          } else {
+            mergedRanges.push(current);
+            current = ranges[i];
           }
+        }
+        mergedRanges.push(current);
+      }
+      for (const r of mergedRanges) {
+        for (let id = r[0]; id <= r[1]; id++) {
+          state.owned.add(id);
         }
       }
     } else {
       const missingSet = new Set();
-      for (const r of ranges) {
+      ranges.sort((a, b) => a[0] - b[0]);
+      const mergedRanges = [];
+      if (ranges.length > 0) {
+        let current = ranges[0];
+        for (let i = 1; i < ranges.length; i++) {
+          if (ranges[i][0] <= current[1] + 1) {
+            current[1] = Math.max(current[1], ranges[i][1]);
+          } else {
+            mergedRanges.push(current);
+            current = ranges[i];
+          }
+        }
+        mergedRanges.push(current);
+      }
+      for (const r of mergedRanges) {
         for (let id = r[0]; id <= r[1]; id++) {
           missingSet.add(id);
         }
@@ -412,12 +444,10 @@ const StickerParser = {
             const start = parseInt(startStr, 10);
             const end = parseInt(endStr, 10);
             if (!isNaN(start) && !isNaN(end)) {
-              const min = Math.min(start, end);
-              const max = Math.max(start, end);
+              const min = Math.max(1, Math.min(start, end));
+              const max = Math.min(this.TOTAL_STICKERS, Math.max(start, end));
               for (let i = min; i <= max; i++) {
-                if (i >= 1 && i <= this.TOTAL_STICKERS) {
-                  result.owned.add(i);
-                }
+                result.owned.add(i);
               }
             }
           } else {
