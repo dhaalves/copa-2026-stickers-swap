@@ -226,3 +226,35 @@ assert.strictEqual(binaryDosState.owned.size, StickerParser.TOTAL_STICKERS);
 console.log('   ✅ Binary parser DoS prevention passed.');
 
 console.log('\n🔒 All security tests passed successfully!');
+
+
+// Test 12: Text List Format parsing
+console.log('12. Testing Text List Format parsing...');
+const textListInput = `⭐️ FWC: 00, 1, 2, 3, 5, 6, 7, 8
+ FWC: 9, 11, 12, 13, 14, 15, 17, 18
+💼 CC: 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14
+🇲🇽 MEX: 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20
+🇵🇦 PAN: 19, 20`;
+
+const parsedTextListState = StickerParser.parseAlbumCode(textListInput);
+
+// FWC 00 -> 1, FWC 1 -> 2 ... FWC 18 -> 19
+assert.ok(parsedTextListState.owned.has(1));
+assert.ok(parsedTextListState.owned.has(2));
+assert.ok(parsedTextListState.owned.has(4)); // FWC 3
+assert.ok(!parsedTextListState.owned.has(5)); // FWC 4 is missing
+assert.ok(parsedTextListState.owned.has(19)); // FWC 18
+
+// CC 1 -> 21, CC 14 -> 34
+assert.ok(parsedTextListState.owned.has(21));
+assert.ok(parsedTextListState.owned.has(34));
+
+// MEX 1 -> 35, MEX 20 -> 54
+assert.ok(parsedTextListState.owned.has(35));
+assert.ok(parsedTextListState.owned.has(54));
+
+// PAN 19 -> 993, PAN 20 -> 994
+assert.ok(parsedTextListState.owned.has(993));
+assert.ok(parsedTextListState.owned.has(994));
+
+console.log('   ✅ Text List Format parsing passed.');
