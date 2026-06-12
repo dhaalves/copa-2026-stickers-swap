@@ -13,8 +13,6 @@ document.addEventListener('DOMContentLoaded', () => {
         },
         currentGroup: 'FWC & CC',
         partnerState: null
-    ,
-        currentUser: null
     };
 
     // Group definitions matching the 12 Copa groups plus FWC & CC
@@ -64,38 +62,15 @@ document.addEventListener('DOMContentLoaded', () => {
         btnShareWhatsapp: document.getElementById('btn-share-whatsapp'),
         importCodeTextarea: document.getElementById('import-code-textarea'),
         btnImportConfirm: document.getElementById('btn-import-confirm')
-    ,
-        tabAccount: document.getElementById('tab-trigger-account'),
-        sectionAccount: document.getElementById('section-account'),
-        authLoginPanel: document.getElementById('auth-login-panel'),
-        authLoggedInPanel: document.getElementById('auth-logged-in-panel'),
-        authEmailInput: document.getElementById('auth-email'),
-        authPasswordInput: document.getElementById('auth-password'),
-        btnAuthLogin: document.getElementById('btn-auth-login'),
-        btnAuthRegister: document.getElementById('btn-auth-register'),
-        btnAuthLogout: document.getElementById('btn-auth-logout'),
-        authUserEmail: document.getElementById('auth-user-email'),
-        authMessage: document.getElementById('auth-message')
     };
 
     /* ==========================================================================
        INITIALIZATION
        ========================================================================== */
 
-    async function init() {
-        // Check Auth Session
-        if (window.SupabaseAuth) {
-            const session = await SupabaseAuth.checkSession();
-            if (session) {
-                state.currentUser = session.user;
-                updateAuthUI();
-                await loadMyAlbumFromCloud();
-            } else {
-                loadMyAlbumFromStorage();
-            }
-        } else {
-            loadMyAlbumFromStorage();
-        }
+    function init() {
+        // 1. Load my album state from localStorage or initialize
+        loadMyAlbumFromStorage();
 
         // 2. Render all sticker grids
         renderStickerGrid();
@@ -115,38 +90,6 @@ document.addEventListener('DOMContentLoaded', () => {
        ========================================================================== */
 
     function saveMyAlbumToStorage() {
-        const code = StickerParser.generateAlbumCode(state.myAlbum);
-        localStorage.setItem(LOCAL_STORAGE_KEY, code);
-
-        // Sync to cloud if logged in
-        if (state.currentUser && window.SupabaseAuth) {
-            SupabaseAuth.saveAlbum(state.currentUser.id, code).catch(err => {
-                console.error("Failed to sync album to cloud:", err);
-            });
-        }
-    }
-
-    async function loadMyAlbumFromCloud() {
-        if (!state.currentUser || !window.SupabaseAuth) return;
-        try {
-            const cloudCode = await SupabaseAuth.loadAlbum(state.currentUser.id);
-            if (cloudCode) {
-                state.myAlbum = StickerParser.parseAlbumCode(cloudCode);
-                // Also update local storage with the cloud version
-                localStorage.setItem(LOCAL_STORAGE_KEY, cloudCode);
-            } else {
-                // If no cloud code exists yet, load local and sync it up
-                loadMyAlbumFromStorage();
-                const localCode = localStorage.getItem(LOCAL_STORAGE_KEY);
-                if (localCode) {
-                    await SupabaseAuth.saveAlbum(state.currentUser.id, localCode);
-                }
-            }
-        } catch (err) {
-            console.error("Error loading album from cloud, falling back to local:", err);
-            loadMyAlbumFromStorage();
-        }
-    }
         const code = StickerParser.generateAlbumCode(state.myAlbum);
         localStorage.setItem(LOCAL_STORAGE_KEY, code);
     }
@@ -198,100 +141,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-
-
-    /* ==========================================================================
-       AUTHENTICATION
-       ========================================================================== */
-
-    function updateAuthUI() {
-        if (state.currentUser) {
-            el.authLoginPanel.classList.add('hidden');
-            el.authLoggedInPanel.classList.remove('hidden');
-            el.authUserEmail.textContent = state.currentUser.email;
-            el.authMessage.textContent = '';
-        } else {
-            el.authLoginPanel.classList.remove('hidden');
-            el.authLoggedInPanel.classList.add('hidden');
-            el.authEmailInput.value = '';
-            el.authPasswordInput.value = '';
-            el.authUserEmail.textContent = '';
-        }
-    }
-
-    async function handleLogin() {
-        const email = el.authEmailInput.value.trim();
-        const password = el.authPasswordInput.value;
-        if (!email || !password) {
-            el.authMessage.textContent = "Preencha e-mail e senha.";
-            return;
-        }
-
-        try {
-            el.btnAuthLogin.disabled = true;
-            el.authMessage.textContent = "Entrando...";
-            const data = await SupabaseAuth.signIn(email, password);
-            state.currentUser = data.session.user;
-            updateAuthUI();
-            await loadMyAlbumFromCloud();
-            renderStickerGrid();
-            updateMyAlbumUI();
-            el.authMessage.textContent = "";
-        } catch (error) {
-            el.authMessage.textContent = error.message || "Erro ao entrar.";
-        } finally {
-            el.btnAuthLogin.disabled = false;
-        }
-    }
-
-    async function handleRegister() {
-        const email = el.authEmailInput.value.trim();
-        const password = el.authPasswordInput.value;
-        if (!email || !password) {
-            el.authMessage.textContent = "Preencha e-mail e senha.";
-            return;
-        }
-
-        try {
-            el.btnAuthRegister.disabled = true;
-            el.authMessage.textContent = "Criando conta...";
-            const data = await SupabaseAuth.signUp(email, password);
-            if (data.session) {
-                state.currentUser = data.session.user;
-                updateAuthUI();
-                // Save current local album to the new cloud account
-                saveMyAlbumToStorage();
-                el.authMessage.textContent = "";
-            } else {
-                el.authMessage.textContent = "Verifique seu e-mail para confirmar a conta.";
-            }
-        } catch (error) {
-            el.authMessage.textContent = error.message || "Erro ao criar conta.";
-        } finally {
-            el.btnAuthRegister.disabled = false;
-        }
-    }
-
-    async function handleLogout() {
-        try {
-            el.btnAuthLogout.disabled = true;
-            await SupabaseAuth.signOut();
-            state.currentUser = null;
-            updateAuthUI();
-            // Optional: reset to local storage or clear
-            loadMyAlbumFromStorage();
-            renderStickerGrid();
-            updateMyAlbumUI();
-        } catch (error) {
-            console.error("Erro ao sair:", error);
-        } finally {
-            el.btnAuthLogout.disabled = false;
-        }
-    }
-
     /* ==========================================================================
        UI RENDERING
-
        ========================================================================== */
 
     function renderStickerGrid() {
@@ -900,7 +751,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function bindEvents() {
         // Tab switching
-        el.tabAccount.addEventListener('click', () => switchTab('section-account'));
         el.tabMyAlbum.addEventListener('click', () => switchTab('section-my-album'));
         el.tabMatching.addEventListener('click', () => switchTab('section-matching'));
         el.tabImport.addEventListener('click', () => switchTab('section-import'));
@@ -917,12 +767,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     el.btnCopyMyCode.replaceChildren(...originalNodes);
                     el.btnCopyMyCode.style.borderColor = '';
                     el.btnCopyMyCode.style.background = '';
-
-        // Auth events
-        el.btnAuthLogin.addEventListener('click', handleLogin);
-        el.btnAuthRegister.addEventListener('click', handleRegister);
-        el.btnAuthLogout.addEventListener('click', handleLogout);
-}, 1500);
+                }, 1500);
             }).catch(err => {
                 console.error("Falha ao copiar código:", err);
             });

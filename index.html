@@ -14,7 +14,6 @@
         href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="style.css">
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 
 <body class="dark-theme">
@@ -62,11 +61,7 @@
             <button class="tab-btn" id="tab-trigger-import" data-target="section-import">
                 <span>📥 Importar</span>
             </button>
-
-            <button class="tab-btn" id="tab-trigger-account" data-target="section-account">
-                <span>👤 Conta</span>
-            </button>
-</nav>
+        </nav>
 
         <!-- Main Content -->
         <main class="app-content">
@@ -169,42 +164,12 @@
                 </div>
             </section>
 
-
-            <!-- Section D: Account / Authentication -->
-            <section class="tab-section" id="section-account">
-                <!-- Logged Out View -->
-                <div class="card import-panel" id="auth-login-panel">
-                    <h2>Conta na Nuvem</h2>
-                    <p class="section-desc">Crie uma conta para salvar seu álbum e acessá-lo de qualquer dispositivo.</p>
-
-                    <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 15px;">
-                        <input type="email" id="auth-email" placeholder="Email" style="padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); width: 100%; box-sizing: border-box;">
-                        <input type="password" id="auth-password" placeholder="Senha" style="padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); width: 100%; box-sizing: border-box;">
-
-                        <div style="display: flex; gap: 10px; margin-top: 10px;">
-                            <button id="btn-auth-login" class="btn btn-primary" style="flex: 1;">Entrar</button>
-                            <button id="btn-auth-register" class="btn btn-outline" style="flex: 1;">Criar Conta</button>
-                        </div>
-                    </div>
-                    <p id="auth-message" style="color: var(--accent-primary); margin-top: 15px; font-size: 0.9em; text-align: center;"></p>
-                </div>
-
-                <!-- Logged In View -->
-                <div class="card import-panel hidden" id="auth-logged-in-panel">
-                    <h2>Minha Conta</h2>
-                    <p class="section-desc">Seu álbum está sendo salvo na nuvem automaticamente.</p>
-                    <p style="margin-top: 15px; font-weight: bold;">Logado como: <span id="auth-user-email"></span></p>
-
-                    <button id="btn-auth-logout" class="btn btn-outline btn-block" style="margin-top: 20px;">Sair</button>
-                </div>
-            </section>
-</main>
+        </main>
 
     </div>
 
     <!-- Scripts -->
     <script src="js/parser.js"></script>
-    <script src="js/supabase-auth.js"></script>
     <script src="js/app.js"></script>
 </body>
 
