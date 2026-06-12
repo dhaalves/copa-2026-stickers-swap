@@ -406,6 +406,65 @@ const StickerParser = {
    * @param {string} codeStr 
    * @returns {Object} { albumId, version, owned, repeated }
    */
+
+
+  /**
+   * Parses the text list format like "FWC: 00, 1, 2\n MEX: 1, 2"
+   * @param {string} text
+   * @returns {Object} { albumId, version, owned, repeated }
+   */
+  parseTextListFormat(text) {
+    const result = {
+      albumId: this.ALBUM_ID,
+      version: this.VERSION,
+      owned: new Set(),
+      repeated: new Map()
+    };
+
+    const lines = text.split('\n');
+    for (const line of lines) {
+      const match = line.match(/([A-Z]{2,3})\s*:\s*([\d\s,]+)/);
+      if (match) {
+        const code = match[1];
+        const numbersStr = match[2];
+        const numbers = numbersStr.split(',').map(n => n.trim()).filter(n => n !== '');
+
+        let teamIndex = -1;
+        if (code !== 'FWC' && code !== 'CC') {
+           teamIndex = this.TEAMS.findIndex(t => t.code === code);
+        }
+
+        for (const numStr of numbers) {
+            let absoluteId = -1;
+            if (code === 'FWC') {
+               if (numStr === '00') {
+                  absoluteId = 1;
+               } else {
+                  const n = parseInt(numStr, 10);
+                  if (!isNaN(n) && n >= 1 && n <= 19) {
+                     absoluteId = n + 1;
+                  }
+               }
+            } else if (code === 'CC') {
+               const n = parseInt(numStr, 10);
+               if (!isNaN(n) && n >= 1 && n <= 14) {
+                  absoluteId = n + 20;
+               }
+            } else if (teamIndex !== -1) {
+               const n = parseInt(numStr, 10);
+               if (!isNaN(n) && n >= 1 && n <= 20) {
+                  absoluteId = 35 + (teamIndex * 20) + (n - 1);
+               }
+            }
+
+            if (absoluteId !== -1) {
+               result.owned.add(absoluteId);
+            }
+        }
+      }
+    }
+    return result;
+  },
   parseAlbumCode(codeStr) {
     const result = {
       albumId: this.ALBUM_ID,
@@ -419,6 +478,11 @@ const StickerParser = {
     }
 
     const trimmed = codeStr.trim();
+
+    // Check if it's the text list format containing team codes
+    if (/([A-Z]{2,3})\s*:/.test(trimmed) && trimmed.includes('\n')) {
+       return this.parseTextListFormat(trimmed);
+    }
 
     if (trimmed.includes('|')) {
       const parts = trimmed.split('|');
