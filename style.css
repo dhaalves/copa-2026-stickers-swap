@@ -1110,3 +1110,12 @@ textarea:focus {
     color: #fff;
     box-shadow: 0 0 8px rgba(229, 28, 35, 0.4);
 }
+/* Completed Team styling */
+.team-section-header.team-complete {
+    background: rgba(16, 185, 129, 0.15); /* matching --accent-primary with opacity */
+    border-color: var(--accent-primary);
+}
+
+.team-section-header.team-complete .team-progress {
+    color: var(--accent-primary);
+}
