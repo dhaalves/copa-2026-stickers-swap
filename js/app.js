@@ -203,6 +203,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 <span class="team-progress">${fwcOwned}/20</span>
                 <span class="chevron-icon">▼</span>
             </div>
+            <div class="team-progress-bar-container">
+                <div class="team-progress-bar-fill" style="width: ${(fwcOwned / 20) * 100}%"></div>
+            </div>
         `;
 
         const fwcGrid = document.createElement('div');
@@ -239,6 +242,9 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="team-header-right">
                 <span class="team-progress">${ccOwned}/14</span>
                 <span class="chevron-icon">▼</span>
+            </div>
+            <div class="team-progress-bar-container">
+                <div class="team-progress-bar-fill" style="width: ${(ccOwned / 14) * 100}%"></div>
             </div>
         `;
 
@@ -321,6 +327,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="team-header-right">
                     <span class="team-progress">${ownedCount}/20</span>
                     <span class="chevron-icon">▼</span>
+                </div>
+                <div class="team-progress-bar-container">
+                    <div class="team-progress-bar-fill" style="width: ${(ownedCount / 20) * 100}%"></div>
                 </div>
             `;
 
@@ -529,6 +538,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const total = end - start + 1;
         const ownedCount = getOwnedCountInRange(start, end);
         progressEl.textContent = `${ownedCount}/${total}`;
+
+        const progressBarFill = sectionEl.querySelector('.team-progress-bar-fill');
+        if (progressBarFill) {
+            progressBarFill.style.width = `${(ownedCount / total) * 100}%`;
+        }
 
         const headerEl = sectionEl.querySelector(".team-section-header");
         if (headerEl) {
