@@ -157,7 +157,7 @@ body {
 .logo-icon {
     font-size: 32px;
     filter: drop-shadow(0 0 10px rgba(16, 185, 129, 0.4));
-    animation: rotateBall 8s linear infinite;
+    animation: rotateBall 2s linear infinite;
 }
 
 @keyframes rotateBall {
