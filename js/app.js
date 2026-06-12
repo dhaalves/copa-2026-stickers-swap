@@ -710,11 +710,14 @@ document.addEventListener('DOMContentLoaded', () => {
         // 1. Copy to clipboard
         navigator.clipboard.writeText(msg).then(() => {
             // Temporary button state change
-            const originalHTML = el.btnShareWhatsapp.innerHTML;
-            el.btnShareWhatsapp.innerHTML = '<span>✅ Copiado para a Área de Transferência!</span>';
+            const originalNodes = [...el.btnShareWhatsapp.childNodes];
+
+            const span = document.createElement('span');
+            span.textContent = '✅ Copiado para a Área de Transferência!';
+            el.btnShareWhatsapp.replaceChildren(span);
 
             setTimeout(() => {
-                el.btnShareWhatsapp.innerHTML = originalHTML;
+                el.btnShareWhatsapp.replaceChildren(...originalNodes);
 
                 // 2. Open WhatsApp Share Link
                 const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`;
@@ -742,12 +745,12 @@ document.addEventListener('DOMContentLoaded', () => {
         el.btnCopyMyCode.addEventListener('click', () => {
             const code = el.myCodeTextarea.value;
             navigator.clipboard.writeText(code).then(() => {
-                const originalHTML = el.btnCopyMyCode.innerHTML;
-                el.btnCopyMyCode.innerHTML = '✅';
+                const originalNodes = [...el.btnCopyMyCode.childNodes];
+                el.btnCopyMyCode.textContent = '✅';
                 el.btnCopyMyCode.style.borderColor = 'var(--accent-primary)';
                 el.btnCopyMyCode.style.background = 'var(--accent-primary-glow)';
                 setTimeout(() => {
-                    el.btnCopyMyCode.innerHTML = originalHTML;
+                    el.btnCopyMyCode.replaceChildren(...originalNodes);
                     el.btnCopyMyCode.style.borderColor = '';
                     el.btnCopyMyCode.style.background = '';
                 }, 1500);
@@ -763,12 +766,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const performClipboardFallback = () => {
                 navigator.clipboard.writeText(shareUrl).then(() => {
-                    const originalHTML = el.btnCopyMyLink.innerHTML;
-                    el.btnCopyMyLink.innerHTML = '✅';
+                    const originalNodes = [...el.btnCopyMyLink.childNodes];
+                    el.btnCopyMyLink.textContent = '✅';
                     el.btnCopyMyLink.style.borderColor = 'var(--accent-primary)';
                     el.btnCopyMyLink.style.background = 'var(--accent-primary-glow)';
                     setTimeout(() => {
-                        el.btnCopyMyLink.innerHTML = originalHTML;
+                        el.btnCopyMyLink.replaceChildren(...originalNodes);
                         el.btnCopyMyLink.style.borderColor = '';
                         el.btnCopyMyLink.style.background = '';
                     }, 1500);
