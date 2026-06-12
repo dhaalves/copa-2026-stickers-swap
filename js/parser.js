@@ -134,13 +134,18 @@ function encodeStateToBinary(state, totalStickers) {
   
   const ownedRanges = getRanges(ownedArr);
   
-  const missing = [];
-  for (let i = 1; i <= totalStickers; i++) {
-    if (!state.owned || !state.owned.has(i)) {
-      missing.push(i);
+  const missingRanges = [];
+  let nextMissingStart = 1;
+  for (let i = 0; i < ownedRanges.length; i++) {
+    const r = ownedRanges[i];
+    if (r[0] > nextMissingStart) {
+      missingRanges.push([nextMissingStart, r[0] - 1]);
     }
+    nextMissingStart = r[1] + 1;
   }
-  const missingRanges = getRanges(missing);
+  if (nextMissingStart <= totalStickers) {
+    missingRanges.push([nextMissingStart, totalStickers]);
+  }
 
   let mode = 1; // 1 = Bitmask, 2 = Owned Ranges, 3 = Missing Ranges
   let rangeData = [];
