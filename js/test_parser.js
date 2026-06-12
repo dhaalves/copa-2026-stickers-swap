@@ -185,3 +185,44 @@ assert.strictEqual(parsedLegacyState.repeated.get(42), 3);
 console.log('   ✅ Legacy format compatibility passed.');
 
 console.log('\n🎉 All tests passed successfully!');
+
+// Test 10: Security - Text Parser DoS prevention
+console.log('10. Testing text parser DoS prevention...');
+const timeStartTextDoS = Date.now();
+const dosState = StickerParser.parseAlbumCode('SA26|1|0-2000000000|');
+const timeEndTextDoS = Date.now();
+const textDosDuration = timeEndTextDoS - timeStartTextDoS;
+console.log(`    Text DoS parsing took: ${textDosDuration}ms`);
+assert.ok(textDosDuration < 100, 'Text DoS prevention failed, parsing took too long');
+assert.strictEqual(dosState.owned.size, StickerParser.TOTAL_STICKERS);
+console.log('   ✅ Text parser DoS prevention passed.');
+
+// Test 11: Security - Binary Parser DoS prevention
+console.log('11. Testing binary parser DoS prevention...');
+const numRanges = 65535;
+const buffer = new Uint8Array(1 + 2 + numRanges * 4);
+buffer[0] = 2; // mode 2
+buffer[1] = 0xFF; // numRanges high
+buffer[2] = 0xFF; // numRanges low
+
+let offset = 3;
+for (let i = 0; i < numRanges; i++) {
+  // Range 0-65535
+  buffer[offset] = 0;
+  buffer[offset+1] = 0;
+  buffer[offset+2] = 0xFF;
+  buffer[offset+3] = 0xFF;
+  offset += 4;
+}
+
+const base64Str = Buffer.from(buffer).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+const timeStartBinaryDoS = Date.now();
+const binaryDosState = StickerParser.parseAlbumCode(base64Str);
+const timeEndBinaryDoS = Date.now();
+const binaryDosDuration = timeEndBinaryDoS - timeStartBinaryDoS;
+console.log(`    Binary DoS parsing took: ${binaryDosDuration}ms`);
+assert.ok(binaryDosDuration < 200, 'Binary DoS prevention failed, parsing took too long');
+assert.strictEqual(binaryDosState.owned.size, StickerParser.TOTAL_STICKERS);
+console.log('   ✅ Binary parser DoS prevention passed.');
+
+console.log('\n🔒 All security tests passed successfully!');
