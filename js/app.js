@@ -193,7 +193,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const fwcOwned = getOwnedCountInRange(1, 20);
         const fwcHeader = document.createElement('div');
-        fwcHeader.className = 'team-section-header';
+        fwcHeader.className = fwcOwned === 20 ? 'team-section-header team-complete' : 'team-section-header';
         fwcHeader.innerHTML = `
             <div class="team-header-left">
                 <span class="badge-icon badge-fwc">⭐</span>
@@ -230,7 +230,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const ccOwned = getOwnedCountInRange(21, 34);
         const ccHeader = document.createElement('div');
-        ccHeader.className = 'team-section-header';
+        ccHeader.className = ccOwned === 14 ? 'team-section-header team-complete' : 'team-section-header';
         ccHeader.innerHTML = `
             <div class="team-header-left">
                 <span class="badge-icon badge-cc">🥤</span>
@@ -312,7 +312,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const ownedCount = getOwnedCountInRange(start, end);
             const header = document.createElement('div');
-            header.className = 'team-section-header';
+            header.className = ownedCount === 20 ? 'team-section-header team-complete' : 'team-section-header';
             header.innerHTML = `
                 <div class="team-header-left">
                     <span class="team-code">${team.code}</span>
@@ -526,8 +526,18 @@ document.addEventListener('DOMContentLoaded', () => {
             end = start + 19;
         }
 
+        const total = end - start + 1;
         const ownedCount = getOwnedCountInRange(start, end);
-        progressEl.textContent = `${ownedCount}/${end - start + 1}`;
+        progressEl.textContent = `${ownedCount}/${total}`;
+
+        const headerEl = sectionEl.querySelector(".team-section-header");
+        if (headerEl) {
+            if (ownedCount === total) {
+                headerEl.classList.add("team-complete");
+            } else {
+                headerEl.classList.remove("team-complete");
+            }
+        }
     }
 
     function expandGroupTeams(groupName) {
