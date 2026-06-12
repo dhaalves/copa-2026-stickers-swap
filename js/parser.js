@@ -285,16 +285,17 @@ function decodeBinaryToState(buffer, totalStickers) {
         }
       }
     } else {
-      const missingSet = new Set();
+      let currentId = 1;
       for (const r of ranges) {
-        for (let id = r[0]; id <= r[1]; id++) {
-          missingSet.add(id);
+        for (let id = currentId; id < r[0]; id++) {
+          if (id <= totalStickers) {
+            state.owned.add(id);
+          }
         }
+        currentId = Math.max(currentId, r[1] + 1);
       }
-      for (let id = 1; id <= totalStickers; id++) {
-        if (!missingSet.has(id)) {
-          state.owned.add(id);
-        }
+      for (let id = currentId; id <= totalStickers; id++) {
+        state.owned.add(id);
       }
     }
 
