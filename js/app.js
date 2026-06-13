@@ -48,8 +48,12 @@ document.addEventListener('DOMContentLoaded', () => {
         sectionMatching: document.getElementById('section-matching'),
         sectionImport: document.getElementById('section-import'),
         myCodeTextarea: document.getElementById('my-code-textarea'),
-        btnCopyMyCode: document.getElementById('btn-copy-my-code'),
-        btnCopyMyLink: document.getElementById('btn-copy-my-link'),
+        btnOpenShareModal: document.getElementById('btn-open-share-modal'),
+        shareModal: document.getElementById('share-modal'),
+        btnCloseShareModal: document.getElementById('btn-close-share-modal'),
+        btnShareLink: document.getElementById('btn-share-link'),
+        btnShareMissing: document.getElementById('btn-share-missing'),
+        btnShareRepeats: document.getElementById('btn-share-repeats'),
         gridRangeSelector: document.getElementById('grid-range-selector'),
         stickersGrid: document.getElementById('stickers-grid-container'),
         partnerCodeTextarea: document.getElementById('partner-code-textarea'),
@@ -745,9 +749,72 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    function generateShareText(type) {
+        let msg = `Figurinhas App - Lista\nEua Méx Can 26\n`;
+
+        if (type === 'missing') {
+            msg += `Faltantes\n`;
+        } else if (type === 'repeats') {
+            msg += `Repetidas\n`;
+        }
+
+        // Group stickers by team
+        const grouped = {};
+
+        if (type === 'missing') {
+            for (let i = 1; i <= StickerParser.TOTAL_STICKERS; i++) {
+                if (!state.myAlbum.owned.has(i)) {
+                    const info = StickerParser.getStickerInfo(i);
+                    if (info) {
+                        if (!grouped[info.code]) {
+                            grouped[info.code] = { flag: info.flag, items: [] };
+                        }
+                        grouped[info.code].items.push(info.relativeNumber);
+                    }
+                }
+            }
+        } else if (type === 'repeats') {
+            for (const [id, qty] of state.myAlbum.repeated.entries()) {
+                const info = StickerParser.getStickerInfo(id);
+                if (info) {
+                    if (!grouped[info.code]) {
+                        grouped[info.code] = { flag: info.flag, items: [] };
+                    }
+                    grouped[info.code].items.push(info.relativeNumber);
+                }
+            }
+        }
+
+        // We need to maintain the team order defined in TEAMS + FWC/CC
+        // User example puts FWC at top, and CC at bottom.
+        const teamOrder = ['FWC', ...StickerParser.TEAMS.map(t => t.code), 'CC'];
+
+        for (const code of teamOrder) {
+            if (grouped[code] && grouped[code].items.length > 0) {
+                // Special formatting for FWC (🏆) and CC (🥤) if their flags are empty or differ
+                let flag = grouped[code].flag || '';
+
+                // Ensure items are sorted properly (especially for repeats which may be inserted out of order)
+                // Need to handle FWC 00 string appropriately
+                grouped[code].items.sort((a, b) => {
+                    if (a === '00') return -1;
+                    if (b === '00') return 1;
+                    return parseInt(a) - parseInt(b);
+                });
+
+                msg += `${code} ${flag}: ${grouped[code].items.join(', ')}\n`;
+            }
+        }
+
+        msg += `\nBaixe o app\nhttps://www.figuritas.app/pt/baixar`;
+        return msg;
+    }
+
     /* ==========================================================================
        EVENT LISTENERS & NAVIGATION
        ========================================================================== */
+
+
 
     function bindEvents() {
         // Tab switching
@@ -755,39 +822,52 @@ document.addEventListener('DOMContentLoaded', () => {
         el.tabMatching.addEventListener('click', () => switchTab('section-matching'));
         el.tabImport.addEventListener('click', () => switchTab('section-import'));
 
-        // Copy Share Code
-        el.btnCopyMyCode.addEventListener('click', () => {
-            const code = el.myCodeTextarea.value;
-            navigator.clipboard.writeText(code).then(() => {
-                const originalNodes = [...el.btnCopyMyCode.childNodes];
-                el.btnCopyMyCode.textContent = '✅';
-                el.btnCopyMyCode.style.borderColor = 'var(--accent-primary)';
-                el.btnCopyMyCode.style.background = 'var(--accent-primary-glow)';
-                setTimeout(() => {
-                    el.btnCopyMyCode.replaceChildren(...originalNodes);
-                    el.btnCopyMyCode.style.borderColor = '';
-                    el.btnCopyMyCode.style.background = '';
-                }, 1500);
-            }).catch(err => {
-                console.error("Falha ao copiar código:", err);
-            });
+        // Open Share Modal
+        el.btnOpenShareModal.addEventListener('click', () => {
+            el.shareModal.classList.remove('hidden');
         });
 
-        // Copy/Share Album Link
-        el.btnCopyMyLink.addEventListener('click', () => {
+        // Close Share Modal
+        el.btnCloseShareModal.addEventListener('click', () => {
+            el.shareModal.classList.add('hidden');
+        });
+
+        // Copy Share Code (Still present in markup though not in header)
+        if (el.btnCopyMyCode) {
+            el.btnCopyMyCode.addEventListener('click', () => {
+                const code = el.myCodeTextarea.value;
+                navigator.clipboard.writeText(code).then(() => {
+                    const originalNodes = [...el.btnCopyMyCode.childNodes];
+                    el.btnCopyMyCode.textContent = '✅';
+                    el.btnCopyMyCode.style.borderColor = 'var(--accent-primary)';
+                    el.btnCopyMyCode.style.background = 'var(--accent-primary-glow)';
+                    setTimeout(() => {
+                        el.btnCopyMyCode.replaceChildren(...originalNodes);
+                        el.btnCopyMyCode.style.borderColor = '';
+                        el.btnCopyMyCode.style.background = '';
+                    }, 1500);
+                }).catch(err => {
+                    console.error("Falha ao copiar código:", err);
+                });
+            });
+        }
+
+        // Share Album Link
+        el.btnShareLink.addEventListener('click', () => {
             const code = el.myCodeTextarea.value;
             const shareUrl = `${window.location.origin}${window.location.pathname}?partner=${encodeURIComponent(code)}`;
 
             const performClipboardFallback = () => {
                 navigator.clipboard.writeText(shareUrl).then(() => {
-                    const originalNodes = [...el.btnCopyMyLink.childNodes];
-                    el.btnCopyMyLink.textContent = '✅';
-                    el.btnCopyMyLink.style.borderColor = 'var(--accent-primary)';
-                    el.btnCopyMyLink.style.background = 'var(--accent-primary-glow)';
+                    const originalNodes = [...el.btnShareLink.childNodes];
+                    el.btnShareLink.textContent = '✅ Link copiado!';
+                    el.btnShareLink.style.borderColor = 'var(--accent-primary)';
+                    el.btnShareLink.style.background = 'var(--accent-primary-glow)';
                     setTimeout(() => {
-                        el.btnCopyMyLink.replaceChildren(...originalNodes);
-                        el.btnCopyMyLink.style.borderColor = '';
-                        el.btnCopyMyLink.style.background = '';
+                        el.btnShareLink.replaceChildren(...originalNodes);
+                        el.btnShareLink.style.borderColor = '';
+                        el.btnShareLink.style.background = '';
+                        el.shareModal.classList.add('hidden');
                     }, 1500);
                 }).catch(err => {
                     console.error("Falha ao copiar link:", err);
@@ -799,6 +879,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     title: 'Stickers Swap 2026',
                     text: 'Confira as minhas figurinhas e vamos comparar nossos álbuns!',
                     url: shareUrl
+                }).then(() => {
+                    el.shareModal.classList.add('hidden');
                 }).catch(err => {
                     if (err.name !== 'AbortError') {
                         performClipboardFallback();
@@ -809,7 +891,80 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // Confirm Import from Tab
+        // Share Missing List
+        el.btnShareMissing.addEventListener('click', () => {
+            const msg = generateShareText('missing');
+
+            const performClipboardFallback = () => {
+                navigator.clipboard.writeText(msg).then(() => {
+                    const originalNodes = [...el.btnShareMissing.childNodes];
+                    el.btnShareMissing.textContent = '✅ Lista copiada!';
+                    el.btnShareMissing.style.borderColor = 'var(--accent-primary)';
+                    el.btnShareMissing.style.background = 'var(--accent-primary-glow)';
+                    setTimeout(() => {
+                        el.btnShareMissing.replaceChildren(...originalNodes);
+                        el.btnShareMissing.style.borderColor = '';
+                        el.btnShareMissing.style.background = '';
+                        el.shareModal.classList.add('hidden');
+                    }, 1500);
+                }).catch(err => {
+                    console.error("Falha ao copiar lista:", err);
+                });
+            };
+
+            if (navigator.share) {
+                navigator.share({
+                    title: 'Minhas Figurinhas Faltantes - Copa 2026',
+                    text: msg
+                }).then(() => {
+                    el.shareModal.classList.add('hidden');
+                }).catch(err => {
+                    if (err.name !== 'AbortError') {
+                        performClipboardFallback();
+                    }
+                });
+            } else {
+                performClipboardFallback();
+            }
+        });
+
+        // Share Repeats List
+        el.btnShareRepeats.addEventListener('click', () => {
+            const msg = generateShareText('repeats');
+
+            const performClipboardFallback = () => {
+                navigator.clipboard.writeText(msg).then(() => {
+                    const originalNodes = [...el.btnShareRepeats.childNodes];
+                    el.btnShareRepeats.textContent = '✅ Lista copiada!';
+                    el.btnShareRepeats.style.borderColor = 'var(--accent-primary)';
+                    el.btnShareRepeats.style.background = 'var(--accent-primary-glow)';
+                    setTimeout(() => {
+                        el.btnShareRepeats.replaceChildren(...originalNodes);
+                        el.btnShareRepeats.style.borderColor = '';
+                        el.btnShareRepeats.style.background = '';
+                        el.shareModal.classList.add('hidden');
+                    }, 1500);
+                }).catch(err => {
+                    console.error("Falha ao copiar lista:", err);
+                });
+            };
+
+            if (navigator.share) {
+                navigator.share({
+                    title: 'Minhas Figurinhas Repetidas - Copa 2026',
+                    text: msg
+                }).then(() => {
+                    el.shareModal.classList.add('hidden');
+                }).catch(err => {
+                    if (err.name !== 'AbortError') {
+                        performClipboardFallback();
+                    }
+                });
+            } else {
+                performClipboardFallback();
+            }
+        });
+// Confirm Import from Tab
         el.btnImportConfirm.addEventListener('click', () => {
             const code = el.importCodeTextarea.value.trim();
             if (importAlbumFromCode(code)) {

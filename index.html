@@ -32,8 +32,7 @@
                     </div>
                 </div>
                 <div class="header-actions">
-                    <button id="btn-copy-my-code" class="header-share-btn" title="Copiar Código do Álbum (Copia & Cola)">📋</button>
-                    <button id="btn-copy-my-link" class="header-share-btn" title="Copiar Link do Álbum">🔗</button>
+                    <button id="btn-open-share-modal" class="header-share-btn" title="Compartilhar">🔗</button>
                 </div>
             </div>
 
@@ -168,6 +167,21 @@
             </section>
 
         </main>
+
+
+    <!-- Share Options Modal -->
+    <div id="share-modal" class="modal-backdrop hidden">
+        <div class="modal-card">
+            <h3>Compartilhar</h3>
+            <p>Escolha o que deseja compartilhar:</p>
+            <div class="modal-actions" style="flex-direction: column;">
+                <button id="btn-share-link" class="btn btn-primary btn-block">🔗 Compartilhar Link do Álbum</button>
+                <button id="btn-share-missing" class="btn btn-secondary btn-block">📋 Compartilhar Lista de Faltantes</button>
+                <button id="btn-share-repeats" class="btn btn-secondary btn-block">📋 Compartilhar Lista de Repetidas</button>
+                <button id="btn-close-share-modal" class="btn btn-outline btn-block" style="margin-top: 8px;">Cancelar</button>
+            </div>
+        </div>
+    </div>
 
     </div>
 
