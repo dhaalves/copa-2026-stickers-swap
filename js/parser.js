@@ -402,6 +402,34 @@ const StickerParser = {
   },
 
   /**
+   * Gets sticker ID from a code and relative number string.
+   * @param {string} code
+   * @param {string} relativeNumberStr
+   * @returns {number|null}
+   */
+  getIdFromInfo(code, relativeNumberStr) {
+    if (!relativeNumberStr) return null;
+    const rnum = relativeNumberStr.trim();
+    if (code === 'FWC') {
+      if (rnum === '00') return 1;
+      const num = parseInt(rnum, 10);
+      if (!isNaN(num) && num >= 1 && num <= 19) return num + 1;
+    } else if (code === 'CC') {
+      const num = parseInt(rnum, 10);
+      if (!isNaN(num) && num >= 1 && num <= 14) return num + 20;
+    } else {
+      const teamIndex = TEAMS.findIndex(t => t.code === code);
+      if (teamIndex !== -1) {
+        const num = parseInt(rnum, 10);
+        if (!isNaN(num) && num >= 1 && num <= 20) {
+          return 35 + (teamIndex * 20) + (num - 1);
+        }
+      }
+    }
+    return null;
+  },
+
+  /**
    * Parses an album code string into structured state.
    * @param {string} codeStr 
    * @returns {Object} { albumId, version, owned, repeated }
@@ -477,9 +505,70 @@ const StickerParser = {
       return result;
     } else {
       try {
+        if (!/^[A-Za-z0-9_-]+$/.test(trimmed)) {
+          throw new Error("Not a valid base64url string");
+        }
         const bytes = base64URLToUint8Array(trimmed);
         return decodeBinaryToState(bytes, this.TOTAL_STICKERS);
       } catch (e) {
+        const lowerTrimmed = trimmed.toLowerCase();
+        if (trimmed.includes(':') || lowerTrimmed.includes('faltante') || lowerTrimmed.includes('repetida')) {
+          const lines = trimmed.split('\n');
+          let currentMode = 'missing'; // default
+          const missingSet = new Set();
+          let hasMissing = false;
+
+          for (let line of lines) {
+            line = line.trim();
+            if (!line) continue;
+
+            const lower = line.toLowerCase();
+            if (lower.includes('repetida') || lower === 'repetidas' || lower === 'repetidas:') {
+              currentMode = 'repeated';
+              continue;
+            }
+            if (lower.includes('faltante') || lower === 'faltantes' || lower === 'faltantes:') {
+              currentMode = 'missing';
+              continue;
+            }
+            if (lower.includes('tenho') || lower === 'completas' || lower === 'completas:') {
+              currentMode = 'owned';
+              continue;
+            }
+
+            const match = line.match(/^([A-Z]{2,3})(?:.*?):\s*(.+)$/i);
+            if (match) {
+              const code = match[1].toUpperCase();
+              const numbersStr = match[2];
+              const numbers = numbersStr.split(',').map(s => s.trim()).filter(s => s);
+
+              for (const numStr of numbers) {
+                const id = this.getIdFromInfo(code, numStr);
+                if (id) {
+                  if (currentMode === 'missing') {
+                    missingSet.add(id);
+                    hasMissing = true;
+                  } else if (currentMode === 'repeated') {
+                    const qty = result.repeated.get(id) || 0;
+                    result.repeated.set(id, qty + 1);
+                  } else if (currentMode === 'owned') {
+                    result.owned.add(id);
+                  }
+                }
+              }
+            }
+          }
+
+          if (hasMissing) {
+            for (let i = 1; i <= this.TOTAL_STICKERS; i++) {
+              if (!missingSet.has(i)) {
+                result.owned.add(i);
+              }
+            }
+          }
+          return result;
+        }
+
         console.error("Failed to decode binary album code:", e);
         return result;
       }
