@@ -750,7 +750,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function generateShareText(type) {
-        let msg = `Figurinhas App - Lista\nEua Méx Can 26\n`;
+        let msg = `Stickers Swap FWC 2026 - https://dhaalves.github.io/copa-2026-stickers-swap/\n`;
 
         if (type === 'missing') {
             msg += `Faltantes\n`;
@@ -806,7 +806,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        msg += `\nBaixe o app\nhttps://www.figuritas.app/pt/baixar`;
         return msg;
     }
 
