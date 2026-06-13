@@ -736,19 +736,19 @@ document.addEventListener("DOMContentLoaded", () => {
     let msg = `Stickers Swap FWC 2026 - https://dhaalves.github.io/copa-2026-stickers-swap/\n\n`;
 
     if (giveArr.length > 0) {
-      msg += `**Repetidas minha que você não tem:**\n`;
+      msg += `*Repetidas minha que você não tem (${giveArr.length}):*\n`;
       msg += formatStickerGroups(giveArr);
     } else {
-      msg += `**Repetidas minha que você não tem:**\nNenhuma\n`;
+      msg += `*Repetidas minha que você não tem (0):*\nNenhuma\n`;
     }
 
     msg += `\n`;
 
     if (receiveArr.length > 0) {
-      msg += `**Repetidas suas que eu não tenho:**\n`;
+      msg += `*Repetidas suas que eu não tenho (${receiveArr.length}):*\n`;
       msg += formatStickerGroups(receiveArr);
     } else {
-      msg += `**Repetidas suas que eu não tenho:**\nNenhuma\n`;
+      msg += `*Repetidas suas que eu não tenho (0):*\nNenhuma\n`;
     }
 
     // 1. Copy to clipboard
