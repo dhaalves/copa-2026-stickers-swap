@@ -52,3 +52,14 @@
   - Atualizou `decodeBinaryToState` para decodificar o álbum baseado no cabeçalho do modo selecionado (Modos 1, 2 e 3).
 - **Verificação**: Verificação de sintaxe de código em js/parser.js.
 - **Resultado**: Sucesso.
+
+## Passo 2 (Super-compactação Híbrida): Executar e Validar Testes do Parser Híbrido
+- **Arquivos modificados**: [js/test_parser.js](file:///c:/Users/uel/.gemini/antigravity/scratch/copa-2026-stickers/js/test_parser.js)
+- **O que mudou**:
+  - Reescreveu a suíte de testes unitários de compactação.
+  - Adicionou Teste 6 que valida o Modo 2 (Owned Ranges) em álbuns vazios (gerando uma URL de apenas 7 caracteres).
+  - Adicionou Teste 7 que valida o Modo 3 (Missing Ranges) em álbuns completos (gerando uma URL de apenas 7 caracteres).
+  - Adicionou Teste 8 que valida o Modo 1 (Bitmask) em álbuns esparsos complexos.
+  - Adicionou Teste 9 que garante a compatibilidade retroativa contínua com strings legadas.
+- **Verificação**: Executou `node js/test_parser.js` passando com sucesso em todos os 9 testes unitários.
+- **Resultado**: Sucesso.
