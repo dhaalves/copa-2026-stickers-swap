@@ -54,6 +54,9 @@
 
         <!-- Navigation Tabs -->
         <nav class="main-tabs" id="main-nav-tabs">
+            <button class="tab-btn" id="tab-trigger-stats" data-target="section-stats">
+                <span>📊 Estatísticas</span>
+            </button>
             <button class="tab-btn active" id="tab-trigger-my-album" data-target="section-my-album">
                 <span>🎴 Meu Álbum</span>
             </button>
@@ -153,6 +156,58 @@
                     <div class="empty-state-icon">🔍</div>
                     <h3>Nenhuma comparação feita ainda</h3>
                     <p>Cole o código de outro colecionador acima para descobrir quais figurinhas vocês podem trocar.</p>
+                </div>
+            </section>
+
+
+            <!-- Section D: Estatisticas -->
+            <section class="tab-section" id="section-stats">
+                <div class="card stats-panel">
+                    <h2>Resumo</h2>
+                    <div class="stats-grid-detailed">
+                        <div class="stat-box-detailed">
+                            <div class="stat-box-icon completion-icon"><div class="progress-ring-container"><svg class="progress-ring" width="48" height="48"><circle class="progress-ring__circle" id="detailed-stat-completion-ring" stroke="var(--accent-primary)" stroke-width="4" fill="transparent" r="20" cx="24" cy="24"/></svg></div></div>
+                            <div class="stat-box-text">
+                                <span class="stat-box-label">Completado</span>
+                                <span class="stat-box-value" id="detailed-stat-completion">0%</span>
+                            </div>
+                        </div>
+                        <div class="stat-box-detailed">
+                            <div class="stat-box-icon total-icon">🏷️</div>
+                            <div class="stat-box-text">
+                                <span class="stat-box-label">Total</span>
+                                <span class="stat-box-value">994</span>
+                            </div>
+                        </div>
+                        <div class="stat-box-detailed">
+                            <div class="stat-box-icon missing-icon">📋</div>
+                            <div class="stat-box-text">
+                                <span class="stat-box-label">Me faltam</span>
+                                <span class="stat-box-value" id="detailed-stat-missing">994</span>
+                            </div>
+                        </div>
+                        <div class="stat-box-detailed">
+                            <div class="stat-box-icon owned-icon">✅</div>
+                            <div class="stat-box-text">
+                                <span class="stat-box-label">Tenho</span>
+                                <span class="stat-box-value" id="detailed-stat-owned">0</span>
+                            </div>
+                        </div>
+                        <div class="stat-box-detailed">
+                            <div class="stat-box-icon repeats-icon">🔄</div>
+                            <div class="stat-box-text">
+                                <span class="stat-box-label">Repetidas</span>
+                                <span class="stat-box-value" id="detailed-stat-repeats">0</span>
+                            </div>
+                        </div>
+                        <div class="stat-box-detailed">
+                            <div class="stat-box-icon shiny-icon">✨</div>
+                            <div class="stat-box-text">
+                                <span class="stat-box-label">Brilhantes</span>
+                                <span class="stat-box-value" id="detailed-stat-shiny">0/68</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </section>
 

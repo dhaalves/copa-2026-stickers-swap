@@ -42,7 +42,14 @@ document.addEventListener("DOMContentLoaded", () => {
     statsRepeated: document.getElementById("stats-repeated"),
     tabMyAlbum: document.getElementById("tab-trigger-my-album"),
     tabMatching: document.getElementById("tab-trigger-matching"),
-    tabImport: document.getElementById("tab-trigger-import"),
+        tabImport: document.getElementById("tab-trigger-import"),
+    tabStats: document.getElementById("tab-trigger-stats"),
+    detailedStatCompletion: document.getElementById("detailed-stat-completion"),
+    detailedStatCompletionRing: document.getElementById("detailed-stat-completion-ring"),
+    detailedStatMissing: document.getElementById("detailed-stat-missing"),
+    detailedStatOwned: document.getElementById("detailed-stat-owned"),
+    detailedStatRepeats: document.getElementById("detailed-stat-repeats"),
+    detailedStatShiny: document.getElementById("detailed-stat-shiny"),
     sectionMyAlbum: document.getElementById("section-my-album"),
     sectionMatching: document.getElementById("section-matching"),
     sectionImport: document.getElementById("section-import"),
@@ -634,8 +641,37 @@ document.addEventListener("DOMContentLoaded", () => {
     // Update Header stats
     const percentage = (ownedCount / total) * 100;
     el.statsCompletion.textContent = `${ownedCount} / ${total} (${percentage.toFixed(1)}%)`;
-    el.statsProgressFill.style.width = `${percentage}%`;
+        el.statsProgressFill.style.width = `${percentage}%`;
     el.statsRepeated.textContent = repeatedCount;
+
+    // Detailed Stats Tab
+    const missingCount = total - ownedCount;
+
+    // Calculate Shiny (Brilhantes): IDs 1-20 (FWC) + First sticker of each team (35, 55, 75...)
+    let shinyCount = 0;
+    for (let i = 1; i <= 20; i++) {
+      if (state.myAlbum.owned.has(i)) shinyCount++;
+    }
+    for (let i = 0; i < 48; i++) {
+      const teamFirstStickerId = 35 + (i * 20);
+      if (state.myAlbum.owned.has(teamFirstStickerId)) shinyCount++;
+    }
+
+    if (el.detailedStatCompletion) {
+        el.detailedStatCompletion.textContent = `${Math.round(percentage)}%`;
+
+        // Update circular progress bar (circumference is 125.6)
+        const circumference = 125.6;
+        const offset = circumference - (percentage / 100) * circumference;
+        if (el.detailedStatCompletionRing) {
+            el.detailedStatCompletionRing.style.strokeDashoffset = offset;
+        }
+
+        el.detailedStatMissing.textContent = missingCount;
+        el.detailedStatOwned.textContent = ownedCount;
+        el.detailedStatRepeats.textContent = repeatedCount;
+        el.detailedStatShiny.textContent = `${shinyCount}/68`;
+    }
 
     // Generate and update sharing code
     const code = StickerParser.generateAlbumCode(state.myAlbum);
@@ -850,6 +886,7 @@ document.addEventListener("DOMContentLoaded", () => {
       switchTab("section-matching"),
     );
     el.tabImport.addEventListener("click", () => switchTab("section-import"));
+    el.tabStats.addEventListener("click", () => switchTab("section-stats"));
 
     // Open Share Modal
     el.btnOpenShareModal.addEventListener("click", () => {
