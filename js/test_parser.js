@@ -226,3 +226,40 @@ assert.strictEqual(binaryDosState.owned.size, StickerParser.TOTAL_STICKERS);
 console.log('   ✅ Binary parser DoS prevention passed.');
 
 console.log('\n🔒 All security tests passed successfully!');
+
+// Test 12: URL parameter extraction
+console.log('12. Testing URL parameter extraction (Format 1)...');
+const urlFormat1 = "Confira as minhas figurinhas e vamos comparar nossos álbuns! https://dhaalves.github.io/copa-2026-stickers-swap/index.html?partner=ARgG2f_7__7___85_0Ko_D9_QBC8____ENy9_za7-7-___sHW9H____eHQAgRKbB6Zr4v7YLEmE-rSS5AwBAgEDwvj-7-_-___W6zS3ym_sWo2cAIGamwP_6AwzA__vEub-KOb8_s__76r8_IAgQABBlmry7bn_qDwB93fEBAGAAKQEAKgMALQEAOAIAOQEAOgIAOwEAPAIAPgEAPwIAQgEARAEASQMASgIATAEATQEAUAEAUQEAVQEAhAEAnAEAoAEAogMAowEApAMApQEApgEAqQEAqgIAsAIAsQEAxAEAxQEAyAEAyQIAzAEAzQIA5QEA_gEBBAEBBQEBCAEBDQEBEQEBLAEBLwEBMAEBNQIBNgIBOQEBOgIBQwIBSwEBeAEBjQEBkAEBnQEBwwECCwECDgECFAECKAECcQECjwMCugECuwMCvgQCvwMCwgECxAICxwECyAEC4wEC5gEC5wIC6gEC7wEC8wEDAgEDBgEDHQEDJQEDNQEDPgEDQgEDRgEDRwIDUwEDhgEDjAEDkAEDqgIDqwEDtwEDuAIDuQE";
+const parsedUrl = StickerParser.parseAlbumCode(urlFormat1);
+assert.strictEqual(parsedUrl.owned.size, 590, 'Should have parsed 590 owned stickers from format 1');
+assert.strictEqual(parsedUrl.repeated.size, 96, 'Should have parsed 96 repeated stickers from format 1');
+console.log('   ✅ URL parameter extraction tests passed.');
+
+// Test 13: Plain text list format
+console.log('13. Testing Plain text list parsing (Format 3)...');
+const textFormat3 = `Figurinhas App - Lista
+Eua Méx Can 26
+Faltantes
+MEX 🇲🇽: 1, 2, 5, 6, 10, 12, 13, 15, 18, 19
+Repetidas
+MEX 🇲🇽: 7, 16, 20`;
+const parsedText = StickerParser.parseAlbumCode(textFormat3);
+
+const expectedMissingIds = [
+  StickerParser.getIdFromInfo('MEX', '1'),
+  StickerParser.getIdFromInfo('MEX', '2'),
+  StickerParser.getIdFromInfo('MEX', '5'),
+  StickerParser.getIdFromInfo('MEX', '6'),
+  StickerParser.getIdFromInfo('MEX', '10'),
+  StickerParser.getIdFromInfo('MEX', '12'),
+  StickerParser.getIdFromInfo('MEX', '13'),
+  StickerParser.getIdFromInfo('MEX', '15'),
+  StickerParser.getIdFromInfo('MEX', '18'),
+  StickerParser.getIdFromInfo('MEX', '19'),
+];
+for(const id of expectedMissingIds) {
+  assert.ok(!parsedText.owned.has(id), 'Sticker ' + id + ' should be missing');
+}
+assert.strictEqual(parsedText.repeated.size, 3, 'Should have 3 repeated stickers from format 3');
+assert.strictEqual(parsedText.owned.size, StickerParser.TOTAL_STICKERS - expectedMissingIds.length, 'Should have all others as owned from format 3');
+console.log('   ✅ Plain text list tests passed.');

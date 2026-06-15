@@ -446,7 +446,19 @@ const StickerParser = {
       return result;
     }
 
-    const trimmed = codeStr.trim();
+    let trimmed = codeStr.trim();
+
+    // Extract base64 code if it's a URL
+    try {
+      if (trimmed.includes('http') || trimmed.includes('partner=')) {
+        const urlMatch = trimmed.match(/partner=([A-Za-z0-9_-]+)/);
+        if (urlMatch) {
+          trimmed = urlMatch[1];
+        }
+      }
+    } catch (e) {
+      console.error("Failed to extract URL parameter:", e);
+    }
 
     if (trimmed.includes('|')) {
       const parts = trimmed.split('|');
