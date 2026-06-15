@@ -27,12 +27,29 @@
                 <div class="brand">
                     <div class="logo-icon">⚽</div>
                     <div>
-                        <h1 id="app-title">Stickers Swap 2026</h1>
+                        <h1 id="app-title">Stickers Swap <span class="fwc-badge">FWC 2026</span></h1>
                         <p class="subtitle">Organize & Troque Figurinhas</p>
                     </div>
                 </div>
                 <div class="header-actions">
                     <button id="btn-open-share-modal" class="header-share-btn" title="Compartilhar">🔗</button>
+                    <div class="menu-container">
+                        <button id="btn-menu-toggle" class="header-menu-btn" title="Mais Opções">⋮</button>
+                        <div id="dropdown-menu" class="dropdown-menu hidden">
+                            <button class="menu-item active" id="menu-trigger-my-album" data-target="section-my-album">
+                                <span>🎴 Meu Álbum</span>
+                            </button>
+                            <button class="menu-item" id="menu-trigger-stats" data-target="section-stats">
+                                <span>📊 Estatísticas</span>
+                            </button>
+                            <button class="menu-item" id="menu-trigger-matching" data-target="section-matching">
+                                <span>🔄 Comparar & Trocar</span>
+                            </button>
+                            <button class="menu-item" id="menu-trigger-import" data-target="section-import">
+                                <span>📥 Importar</span>
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -52,21 +69,6 @@
             </div>
         </header>
 
-        <!-- Navigation Tabs -->
-        <nav class="main-tabs" id="main-nav-tabs">
-            <button class="tab-btn" id="tab-trigger-stats" data-target="section-stats">
-                <span>📊 Estatísticas</span>
-            </button>
-            <button class="tab-btn active" id="tab-trigger-my-album" data-target="section-my-album">
-                <span>🎴 Meu Álbum</span>
-            </button>
-            <button class="tab-btn" id="tab-trigger-matching" data-target="section-matching">
-                <span>🔄 Comparar & Trocar</span>
-            </button>
-            <button class="tab-btn" id="tab-trigger-import" data-target="section-import">
-                <span>📥 Importar</span>
-            </button>
-        </nav>
 
         <!-- Main Content -->
         <main class="app-content">
@@ -166,7 +168,13 @@
                     <h2>Resumo</h2>
                     <div class="stats-grid-detailed">
                         <div class="stat-box-detailed">
-                            <div class="stat-box-icon completion-icon"><div class="progress-ring-container"><svg class="progress-ring" width="48" height="48"><circle class="progress-ring__circle" id="detailed-stat-completion-ring" stroke="var(--accent-primary)" stroke-width="4" fill="transparent" r="20" cx="24" cy="24"/></svg></div></div>
+                            <div class="stat-box-icon completion-icon">
+                                <div class="progress-ring-container"><svg class="progress-ring" width="48" height="48">
+                                        <circle class="progress-ring__circle" id="detailed-stat-completion-ring"
+                                            stroke="var(--accent-primary)" stroke-width="4" fill="transparent" r="20"
+                                            cx="24" cy="24" />
+                                    </svg></div>
+                            </div>
                             <div class="stat-box-text">
                                 <span class="stat-box-label">Completado</span>
                                 <span class="stat-box-value" id="detailed-stat-completion">0%</span>
@@ -211,33 +219,42 @@
                 </div>
             </section>
 
+
+
             <!-- Section C: Import -->
             <section class="tab-section" id="section-import">
                 <div class="card import-panel">
                     <h2>Importar Meu Álbum</h2>
-                    <p class="section-desc">Cole o seu código de compartilhamento abaixo para restaurar o estado do seu álbum:</p>
+                    <p class="section-desc">Cole o seu código de compartilhamento abaixo para restaurar o estado do seu
+                        álbum:</p>
                     <textarea id="import-code-textarea" placeholder="Cole o código do seu álbum aqui..."></textarea>
-                    <button id="btn-import-confirm" class="btn btn-primary btn-block" style="margin-top: 16px;">Restaurar Álbum</button>
+                    <button id="btn-import-confirm" class="btn btn-primary btn-block"
+                        style="margin-top: 16px;">Restaurar Álbum</button>
                 </div>
             </section>
 
         </main>
 
 
-    <!-- Share Options Modal -->
-    <div id="share-modal" class="modal-backdrop hidden">
-        <div class="modal-card">
-            <h3>Compartilhar</h3>
-            <p>Escolha o que deseja compartilhar:</p>
-            <div class="modal-actions" style="flex-direction: column;">
-                <button id="btn-share-import" class="btn btn-primary btn-block">🔗 Compartilhar Link para Importar</button>
-                <button id="btn-share-compare" class="btn btn-primary btn-block" style="margin-top: 8px; margin-bottom: 8px;">🔗 Compartilhar Link para Comparar</button>
-                <button id="btn-share-missing" class="btn btn-secondary btn-block">📋 Compartilhar Lista de Faltantes</button>
-                <button id="btn-share-repeats" class="btn btn-secondary btn-block">📋 Compartilhar Lista de Repetidas</button>
-                <button id="btn-close-share-modal" class="btn btn-outline btn-block" style="margin-top: 8px;">Cancelar</button>
+        <!-- Share Options Modal -->
+        <div id="share-modal" class="modal-backdrop hidden">
+            <div class="modal-card">
+                <h3>Compartilhar</h3>
+                <p>Escolha o que deseja compartilhar:</p>
+                <div class="modal-actions" style="flex-direction: column;">
+                    <button id="btn-share-import" class="btn btn-primary btn-block">🔗 Compartilhar Link para
+                        Importar</button>
+                    <button id="btn-share-compare" class="btn btn-primary btn-block"
+                        style="margin-top: 8px; margin-bottom: 8px;">🔗 Compartilhar Link para Comparar</button>
+                    <button id="btn-share-missing" class="btn btn-secondary btn-block">📋 Compartilhar Lista de
+                        Faltantes</button>
+                    <button id="btn-share-repeats" class="btn btn-secondary btn-block">📋 Compartilhar Lista de
+                        Repetidas</button>
+                    <button id="btn-close-share-modal" class="btn btn-outline btn-block"
+                        style="margin-top: 8px;">Cancelar</button>
+                </div>
             </div>
         </div>
-    </div>
 
     </div>
 

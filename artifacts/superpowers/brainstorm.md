@@ -1,37 +1,47 @@
-# Brainstorm: Super-compactação do Código de Compartilhamento
+# Superpowers Brainstorm - Improving Header "FWC 2026" Presentation
 
 ## Goal
-Tornar a URL de compartilhamento ainda mais curta, especialmente para álbuns com poucas figurinhas (início de coleção) ou quase completos (fim de coleção), sem perder a robustez para álbuns intermediários/esparsos.
+Improve the presentation of "FWC 2026" in the application header. The current `<h1 id="app-title">Stickers Swap <br /> FWC 2026</h1>` feels awkward due to the hard line break and lack of distinction for the tournament label.
 
 ## Constraints
-- **Sem Bibliotecas de Compressão Pesadas**: Manter o código JS vanilla limpo e de fácil manutenção.
-- **Compatibilidade Retroativa**: Continuar suportando a importação de códigos de texto legados (`SA26|1|...`).
+- Must align properly with the rotating ball logo (`⚽`) and the action buttons.
+- Must fit within the 480px max-width container, especially on narrow mobile viewports (down to 320px-360px).
+- Must match the modern, dark, glassmorphism design system.
+
+## Known context
+- The application currently uses:
+  - `--brand-gradient`: `linear-gradient(135deg, #10b981 0%, #06b6d4 100%)` (Emerald/Cyan)
+  - `--accent-secondary`: `#eab308` (Amber Yellow / Gold)
+  - `--font-display`: `'Outfit', sans-serif`
+- Current HTML is:
+  ```html
+  <h1 id="app-title">Stickers Swap <br /> FWC 2026</h1>
+  <p class="subtitle">Organize & Troque Figurinhas</p>
+  ```
 
 ## Risks
-- **Desempenho**: O cálculo de intervalos (ranges) deve ser rápido, o que é garantido pela ordenação de arrays nativa do JS.
-- **Limite de Bytes**: Assegurar que o algoritmo escolha dinamicamente a menor representação possível para evitar que a URL exceda o limite físico sob qualquer circunstância.
+- **Text Wrapping & Overflow**: On smaller screens, having a large title + a badge might push items to multiple lines or cause layout breakages if not styled responsively.
+- **Visual Clutter**: Adding too many gradients or shapes near the rotating logo and the main title might distract from the core brand name.
 
-## Options
-
-### Opção 1: Formato Híbrido Dinâmico (Recomendado)
-- Definir 3 modos de codificação binária:
-  - **Modo 1 (Bitmask)**: Usado quando o álbum tem muitas figurinhas espalhadas de forma aleatória. Usa 125 bytes fixos para representar o álbum.
-  - **Modo 2 (Owned Ranges)**: Usado quando há poucos intervalos de figurinhas possuídas (e.g. no começo da coleção). Codifica apenas os intervalos de figurinhas que o colecionador possui (4 bytes por intervalo).
-  - **Modo 3 (Missing Ranges)**: Usado quando o colecionador está quase completando o álbum (poucos intervalos de figurinhas faltantes). Codifica os intervalos das figurinhas que faltam (4 bytes por intervalo).
-- O encoder calcula o custo de cada modo em bytes e seleciona automaticamente o menor formato para gerar a URL.
-- **Tamanho Estimado**:
-  - Álbum vazio: 5 bytes (~7 caracteres Base64URL).
-  - Álbum cheio: 5 bytes (~7 caracteres Base64URL).
-  - Coleção iniciante (10 figurinhas esparsas): 45 bytes (~60 caracteres Base64URL).
-  - Pior caso (aleatório esparso intermediário): 128 bytes (~172 caracteres Base64URL).
-
-### Opção 2: Compressão LZW Simples sobre Bitmask
-- Gerar o bitmask fixo de 125 bytes e aplicar um compressor LZW em JavaScript por cima dele.
-- **Desvantagem**: A complexidade do código aumenta significativamente, é mais difícil debugar e, para álbuns quase vazios ou quase cheios, ainda seria maior do que o formato Híbrido Dinâmico.
+## Options (2–4)
+- **Option 1 (Gold/Amber Badge)**: Format "FWC 2026" as a stylized tournament badge (gold border, semi-transparent gold background) placed inline with "Stickers Swap", removing the `<br />`.
+  - *HTML*: `<h1 id="app-title">Stickers Swap <span class="fwc-badge">FWC 2026</span></h1>`
+- **Option 2 (Subtitle Alignment)**: Simplify the main title to "Stickers Swap" and move "FWC 2026" next to the subtitle, styled as a subtle text tag.
+  - *HTML*:
+    ```html
+    <h1 id="app-title">Stickers Swap</h1>
+    <div class="subtitle-row">
+        <span class="fwc-badge-pill">FWC 2026</span>
+        <span class="subtitle">Organize & Troque Figurinhas</span>
+    </div>
+    ```
+- **Option 3 (Modern Neon Tag)**: Keep the break but style "FWC 2026" on the second line with a smaller font size, a clean tracking/letter-spacing, and a different color (e.g., gold or neon green) without a background badge.
+  - *HTML*: `<h1 id="app-title">Stickers Swap <span class="tournament-label">FWC 2026</span></h1>`
 
 ## Recommendation
-**Opção 1 (Formato Híbrido Dinâmico)** é ideal. Ela atinge níveis extremos de compressão para os estados mais comuns (início e fim de coleção) e tem um limite máximo garantido extremamente pequeno para o pior caso, sem complexidade de algoritmos de compressão de dados genéricos.
+- **Option 1** is recommended. Placing a gold pill-shaped badge next to the gradient text makes the app look extremely premium, mimicking high-end sports apps.
 
 ## Acceptance criteria
-1. O parser detecta dinamicamente qual modo foi usado pelo primeiro byte do buffer (`0x01`, `0x02` ou `0x03`).
-2. Testes de unidade em `test_parser.js` validam a compactação perfeita e reversibilidade para os três modos (vazio, cheio, esparso).
+1. The hard `<br />` is removed from the title.
+2. "FWC 2026" is styled as a clean badge/tag with yellow/gold colors to represent the FIFA World Cup trophy/theme.
+3. The layout is fully responsive and looks balanced on both mobile and desktop screens.

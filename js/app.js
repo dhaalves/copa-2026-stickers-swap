@@ -40,10 +40,12 @@ document.addEventListener("DOMContentLoaded", () => {
     statsCompletion: document.getElementById("stats-completion"),
     statsProgressFill: document.getElementById("stats-progress-fill"),
     statsRepeated: document.getElementById("stats-repeated"),
-    tabMyAlbum: document.getElementById("tab-trigger-my-album"),
-    tabMatching: document.getElementById("tab-trigger-matching"),
-        tabImport: document.getElementById("tab-trigger-import"),
-    tabStats: document.getElementById("tab-trigger-stats"),
+    tabMyAlbum: document.getElementById("menu-trigger-my-album"),
+    tabMatching: document.getElementById("menu-trigger-matching"),
+    tabImport: document.getElementById("menu-trigger-import"),
+    tabStats: document.getElementById("menu-trigger-stats"),
+    btnMenuToggle: document.getElementById("btn-menu-toggle"),
+    dropdownMenu: document.getElementById("dropdown-menu"),
     detailedStatCompletion: document.getElementById("detailed-stat-completion"),
     detailedStatCompletionRing: document.getElementById("detailed-stat-completion-ring"),
     detailedStatMissing: document.getElementById("detailed-stat-missing"),
@@ -642,7 +644,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // Update Header stats
     const percentage = (ownedCount / total) * 100;
     el.statsCompletion.textContent = `${ownedCount} / ${total} (${percentage.toFixed(1)}%)`;
-        el.statsProgressFill.style.width = `${percentage}%`;
+    el.statsProgressFill.style.width = `${percentage}%`;
     el.statsRepeated.textContent = repeatedCount;
 
     // Detailed Stats Tab
@@ -659,19 +661,19 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     if (el.detailedStatCompletion) {
-        el.detailedStatCompletion.textContent = `${Math.round(percentage)}%`;
+      el.detailedStatCompletion.textContent = `${Math.round(percentage)}%`;
 
-        // Update circular progress bar (circumference is 125.6)
-        const circumference = 125.6;
-        const offset = circumference - (percentage / 100) * circumference;
-        if (el.detailedStatCompletionRing) {
-            el.detailedStatCompletionRing.style.strokeDashoffset = offset;
-        }
+      // Update circular progress bar (circumference is 125.6)
+      const circumference = 125.6;
+      const offset = circumference - (percentage / 100) * circumference;
+      if (el.detailedStatCompletionRing) {
+        el.detailedStatCompletionRing.style.strokeDashoffset = offset;
+      }
 
-        el.detailedStatMissing.textContent = missingCount;
-        el.detailedStatOwned.textContent = ownedCount;
-        el.detailedStatRepeats.textContent = repeatedCount;
-        el.detailedStatShiny.textContent = `${shinyCount}/68`;
+      el.detailedStatMissing.textContent = missingCount;
+      el.detailedStatOwned.textContent = ownedCount;
+      el.detailedStatRepeats.textContent = repeatedCount;
+      el.detailedStatShiny.textContent = `${shinyCount}/68`;
     }
 
     // Generate and update sharing code
@@ -906,14 +908,33 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function bindEvents() {
     // Tab switching
-    el.tabMyAlbum.addEventListener("click", () =>
-      switchTab("section-my-album"),
-    );
-    el.tabMatching.addEventListener("click", () =>
-      switchTab("section-matching"),
-    );
-    el.tabImport.addEventListener("click", () => switchTab("section-import"));
-    el.tabStats.addEventListener("click", () => switchTab("section-stats"));
+    if (el.tabMyAlbum) {
+      el.tabMyAlbum.addEventListener("click", () => switchTab("section-my-album"));
+    }
+    if (el.tabStats) {
+      el.tabStats.addEventListener("click", () => switchTab("section-stats"));
+    }
+    if (el.tabMatching) {
+      el.tabMatching.addEventListener("click", () => switchTab("section-matching"));
+    }
+    if (el.tabImport) {
+      el.tabImport.addEventListener("click", () => switchTab("section-import"));
+    }
+
+    // Toggle Dropdown Menu
+    if (el.btnMenuToggle && el.dropdownMenu) {
+      el.btnMenuToggle.addEventListener("click", (e) => {
+        e.stopPropagation();
+        el.dropdownMenu.classList.toggle("hidden");
+      });
+
+      // Close dropdown when clicking outside
+      document.addEventListener("click", (e) => {
+        if (!el.dropdownMenu.contains(e.target) && e.target !== el.btnMenuToggle) {
+          el.dropdownMenu.classList.add("hidden");
+        }
+      });
+    }
 
     // Open Share Modal
     el.btnOpenShareModal.addEventListener("click", () => {
@@ -976,7 +997,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (navigator.share) {
         navigator
           .share({
-            title: "Stickers Swap 2026",
+            title: "Stickers Swap FWC 2026",
             text: "Confira as minhas figurinhas para importar o álbum!",
             url: shareUrl,
           })
@@ -1021,7 +1042,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (navigator.share) {
         navigator
           .share({
-            title: "Stickers Swap 2026",
+            title: "Stickers Swap FWC 2026",
             text: "Confira as minhas figurinhas e vamos comparar nossos álbuns!",
             url: shareUrl,
           })
@@ -1145,8 +1166,8 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function switchTab(sectionId) {
-    // Toggle tabs active state
-    document.querySelectorAll(".tab-btn").forEach((btn) => {
+    // Toggle dropdown items active state
+    document.querySelectorAll(".menu-item").forEach((btn) => {
       if (btn.dataset.target === sectionId) {
         btn.classList.add("active");
       } else {
@@ -1162,6 +1183,11 @@ document.addEventListener("DOMContentLoaded", () => {
         sect.classList.remove("active");
       }
     });
+
+    // Hide dropdown menu after selection
+    if (el.dropdownMenu) {
+      el.dropdownMenu.classList.add("hidden");
+    }
   }
 
   /* ==========================================================================

@@ -1,7 +1,15 @@
-### Review Pass
+# Superpowers Review - Improving Header "FWC 2026" Presentation
 
-**Severity:** Nit
+## Review Pass
 
-- **Issue:** The styling of the progress bar in `style.css` does not perfectly center the progress bar text or have an overlay text, but this wasn't part of the requirement ("adicione uma barra de progresso discreta para cada time" -> "add a discrete progress bar for each team"). The current implementation uses simple colors. No functional problem.
+### Blocker
+*None*
 
-The plan and requirements have been fulfilled.
+### Major
+*None*
+
+### Minor
+*None*
+
+### Nit
+- **Viewport scaling**: On viewports narrower than 340px, the title "Stickers Swap" and the badge "FWC 2026" might wrap. This is handled gracefully by using `display: inline-flex` on the badge, causing it to fall to the next line below "Stickers Swap" instead of breaking inside the text.
