@@ -50,7 +50,8 @@ document.addEventListener("DOMContentLoaded", () => {
     btnOpenShareModal: document.getElementById("btn-open-share-modal"),
     shareModal: document.getElementById("share-modal"),
     btnCloseShareModal: document.getElementById("btn-close-share-modal"),
-    btnShareLink: document.getElementById("btn-share-link"),
+    btnShareImport: document.getElementById("btn-share-import"),
+    btnShareCompare: document.getElementById("btn-share-compare"),
     btnShareMissing: document.getElementById("btn-share-missing"),
     btnShareRepeats: document.getElementById("btn-share-repeats"),
     gridRangeSelector: document.getElementById("grid-range-selector"),
@@ -811,6 +812,32 @@ document.addEventListener("DOMContentLoaded", () => {
     return msg;
   }
 
+  function generateFullText(stateParam) {
+    let msg = "";
+
+    // Owned
+    const ownedIds = [];
+    for (let i = 1; i <= StickerParser.TOTAL_STICKERS; i++) {
+      if (stateParam.owned.has(i)) {
+        ownedIds.push(i);
+      }
+    }
+    msg += formatStickerGroups(ownedIds);
+
+    // Repeated
+    const repeatIds = [];
+    for (const id of stateParam.repeated.keys()) {
+      repeatIds.push(id);
+    }
+
+    if (repeatIds.length > 0) {
+      msg += `\nRepetidas\n`;
+      msg += formatStickerGroups(repeatIds);
+    }
+
+    return msg.trim();
+  }
+
   function generateShareText(type) {
     let msg = `Stickers Swap FWC 2026 - https://dhaalves.github.io/copa-2026-stickers-swap/\n\n`;
 
@@ -884,23 +911,68 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     }
 
-    // Share Album Link
-    el.btnShareLink.addEventListener("click", () => {
+    // Share Album Link for Import
+    el.btnShareImport.addEventListener("click", () => {
       const code = el.myCodeTextarea.value;
-      const shareUrl = `${window.location.origin}${window.location.pathname}?partner=${encodeURIComponent(code)}`;
+      const shareUrl = `${window.location.origin}${window.location.pathname}?import=${encodeURIComponent(code)}`;
 
       const performClipboardFallback = () => {
         navigator.clipboard
           .writeText(shareUrl)
           .then(() => {
-            const originalNodes = [...el.btnShareLink.childNodes];
-            el.btnShareLink.textContent = "✅ Link copiado!";
-            el.btnShareLink.style.borderColor = "var(--accent-primary)";
-            el.btnShareLink.style.background = "var(--accent-primary-glow)";
+            const originalNodes = [...el.btnShareImport.childNodes];
+            el.btnShareImport.textContent = "✅ Link copiado!";
+            el.btnShareImport.style.borderColor = "var(--accent-primary)";
+            el.btnShareImport.style.background = "var(--accent-primary-glow)";
             setTimeout(() => {
-              el.btnShareLink.replaceChildren(...originalNodes);
-              el.btnShareLink.style.borderColor = "";
-              el.btnShareLink.style.background = "";
+              el.btnShareImport.replaceChildren(...originalNodes);
+              el.btnShareImport.style.borderColor = "";
+              el.btnShareImport.style.background = "";
+              el.shareModal.classList.add("hidden");
+            }, 1500);
+          })
+          .catch((err) => {
+            console.error("Falha ao copiar link:", err);
+          });
+      };
+
+      if (navigator.share) {
+        navigator
+          .share({
+            title: "Stickers Swap 2026",
+            text: "Confira as minhas figurinhas para importar o álbum!",
+            url: shareUrl,
+          })
+          .then(() => {
+            el.shareModal.classList.add("hidden");
+          })
+          .catch((err) => {
+            if (err.name !== "AbortError") {
+              performClipboardFallback();
+            }
+          });
+      } else {
+        performClipboardFallback();
+      }
+    });
+
+    // Share Album Link for Compare
+    el.btnShareCompare.addEventListener("click", () => {
+      const code = el.myCodeTextarea.value;
+      const shareUrl = `${window.location.origin}${window.location.pathname}?compare=${encodeURIComponent(code)}`;
+
+      const performClipboardFallback = () => {
+        navigator.clipboard
+          .writeText(shareUrl)
+          .then(() => {
+            const originalNodes = [...el.btnShareCompare.childNodes];
+            el.btnShareCompare.textContent = "✅ Link copiado!";
+            el.btnShareCompare.style.borderColor = "var(--accent-primary)";
+            el.btnShareCompare.style.background = "var(--accent-primary-glow)";
+            setTimeout(() => {
+              el.btnShareCompare.replaceChildren(...originalNodes);
+              el.btnShareCompare.style.borderColor = "";
+              el.btnShareCompare.style.background = "";
               el.shareModal.classList.add("hidden");
             }, 1500);
           })
@@ -1062,15 +1134,21 @@ document.addEventListener("DOMContentLoaded", () => {
   function checkQueryParams() {
     const urlParams = new URLSearchParams(window.location.search);
 
-    // check if sharing partner code (which is our friend's repeats list)
-    const partnerCode = urlParams.get("partner");
-    if (partnerCode) {
-      el.partnerCodeTextarea.value = partnerCode;
+    // For backwards compatibility, 'partner' behaves like 'compare'
+    const compareCode = urlParams.get("compare") || urlParams.get("partner");
+    const importCode = urlParams.get("import");
+
+    if (compareCode) {
+      const parsedState = StickerParser.parseAlbumCode(compareCode);
+      const transcribedText = generateFullText(parsedState);
+      el.partnerCodeTextarea.value = transcribedText;
       switchTab("section-matching");
       calculateMatch();
-
-      // Clean up the URL so reloading doesn't prompt again or keep it dirty
-      // window.history.replaceState({}, document.title, window.location.pathname);
+    } else if (importCode) {
+      const parsedState = StickerParser.parseAlbumCode(importCode);
+      const transcribedText = generateFullText(parsedState);
+      el.importCodeTextarea.value = transcribedText;
+      switchTab("section-import");
     }
   }
 
