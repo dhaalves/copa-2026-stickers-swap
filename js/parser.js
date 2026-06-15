@@ -265,7 +265,8 @@ function decodeBinaryToState(buffer, totalStickers) {
       offset += 3;
     }
   } else if (mode === 2 || mode === 3) {
-    const numRanges = (buffer[1] << 8) | buffer[2];
+    let numRanges = (buffer[1] << 8) | buffer[2];
+    if (numRanges > 1000) numRanges = 1000; // DoS prevention
     let offset = 3;
     const ranges = [];
     for (let i = 0; i < numRanges; i++) {
@@ -524,9 +525,12 @@ const StickerParser = {
         return decodeBinaryToState(bytes, this.TOTAL_STICKERS);
       } catch (e) {
         const lowerTrimmed = trimmed.toLowerCase();
-        if (trimmed.includes(':') || lowerTrimmed.includes('faltante') || lowerTrimmed.includes('repetida')) {
+        // Check if it matches a typical text format by testing for country code matches or keywords
+        const isTextFormat = trimmed.includes(':') || lowerTrimmed.includes('faltante') || lowerTrimmed.includes('repetida') || /^([A-Z]{2,3})(?:.*?):\s*(.+)$/im.test(trimmed);
+
+        if (isTextFormat) {
           const lines = trimmed.split('\n');
-          let currentMode = 'missing'; // default
+          let currentMode = 'owned'; // default
           const missingSet = new Set();
           let hasMissing = false;
 
