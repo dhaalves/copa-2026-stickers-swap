@@ -41,19 +41,16 @@ document.addEventListener("DOMContentLoaded", () => {
     statsProgressFill: document.getElementById("stats-progress-fill"),
     statsRepeated: document.getElementById("stats-repeated"),
     tabMyAlbum: document.getElementById("tab-trigger-my-album"),
-    tabMatching: document.getElementById("tab-trigger-matching"),
-        tabImport: document.getElementById("tab-trigger-import"),
-    tabStats: document.getElementById("tab-trigger-stats"),
-    detailedStatCompletion: document.getElementById("detailed-stat-completion"),
+    tabConnections: document.getElementById("tab-trigger-connections"),
+                detailedStatCompletion: document.getElementById("detailed-stat-completion"),
     detailedStatCompletionRing: document.getElementById("detailed-stat-completion-ring"),
     detailedStatMissing: document.getElementById("detailed-stat-missing"),
     detailedStatOwned: document.getElementById("detailed-stat-owned"),
     detailedStatRepeats: document.getElementById("detailed-stat-repeats"),
     detailedStatShiny: document.getElementById("detailed-stat-shiny"),
     sectionMyAlbum: document.getElementById("section-my-album"),
-    sectionMatching: document.getElementById("section-matching"),
-    sectionImport: document.getElementById("section-import"),
-    myCodeTextarea: document.getElementById("my-code-textarea"),
+    sectionConnections: document.getElementById("section-connections"),
+        myCodeTextarea: document.getElementById("my-code-textarea"),
     btnOpenShareModal: document.getElementById("btn-open-share-modal"),
     shareModal: document.getElementById("share-modal"),
     btnCloseShareModal: document.getElementById("btn-close-share-modal"),
@@ -882,11 +879,7 @@ document.addEventListener("DOMContentLoaded", () => {
     el.tabMyAlbum.addEventListener("click", () =>
       switchTab("section-my-album"),
     );
-    el.tabMatching.addEventListener("click", () =>
-      switchTab("section-matching"),
-    );
-    el.tabImport.addEventListener("click", () => switchTab("section-import"));
-    el.tabStats.addEventListener("click", () => switchTab("section-stats"));
+    el.tabConnections.addEventListener("click", () => switchTab("section-connections"));
 
     // Open Share Modal
     el.btnOpenShareModal.addEventListener("click", () => {
@@ -1103,7 +1096,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const partnerCode = urlParams.get("partner");
     if (partnerCode) {
       el.partnerCodeTextarea.value = partnerCode;
-      switchTab("section-matching");
+      switchTab("section-connections");
       calculateMatch();
 
       // Clean up the URL so reloading doesn't prompt again or keep it dirty
