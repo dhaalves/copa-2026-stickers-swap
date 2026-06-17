@@ -1143,6 +1143,11 @@ textarea:focus {
     color: var(--accent-primary);
 }
 
+.team-flag {
+    font-size: 16px;
+    line-height: 1;
+}
+
 
 .team-progress-bar-container {
     flex-basis: 100%;

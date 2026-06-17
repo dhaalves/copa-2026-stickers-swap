@@ -347,6 +347,7 @@ document.addEventListener("DOMContentLoaded", () => {
           : "team-section-header";
       header.innerHTML = `
                 <div class="team-header-left">
+                    <span class="team-flag">${team.flag}</span>
                     <span class="team-code">${team.code}</span>
                     <span class="team-name">${team.name}</span>
                 </div>
