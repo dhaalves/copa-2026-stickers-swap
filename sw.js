@@ -1,4 +1,4 @@
-const CACHE_NAME = 'stickers-swap-v1';
+const CACHE_NAME = 'stickers-swap-v2';
 const ASSETS = [
   './',
   './index.html',
@@ -16,17 +16,34 @@ self.addEventListener('install', (event) => {
       return cache.addAll(ASSETS);
     })
   );
+  self.skipWaiting();
 });
 
 self.addEventListener('fetch', (event) => {
+  // Only handle HTTP/HTTPS requests
+  if (!event.request.url.startsWith('http')) {
+    return;
+  }
+
   event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      return cachedResponse || fetch(event.request);
+    caches.open(CACHE_NAME).then((cache) => {
+      return cache.match(event.request).then((cachedResponse) => {
+        const fetchedResponse = fetch(event.request).then((networkResponse) => {
+          if (networkResponse.ok) {
+             cache.put(event.request, networkResponse.clone());
+          }
+          return networkResponse;
+        }).catch(() => {
+          // ignore network errors
+        });
+        return cachedResponse || fetchedResponse;
+      });
     })
   );
 });
 
 self.addEventListener('activate', (event) => {
+  event.waitUntil(self.clients.claim());
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
