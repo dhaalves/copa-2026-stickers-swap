@@ -1163,6 +1163,58 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Share Whatsapp
     el.btnShareWhatsapp.addEventListener("click", shareTradeOnWhatsapp);
+
+    // Swipe to navigate between tabs
+    let touchstartX = 0;
+    let touchstartY = 0;
+    let touchendX = 0;
+    let touchendY = 0;
+    const minSwipeDistance = 50;
+
+    const sections = [
+      "section-my-album",
+      "section-stats",
+      "section-matching",
+      "section-import"
+    ];
+
+    document.addEventListener("touchstart", (e) => {
+      touchstartX = e.changedTouches[0].screenX;
+      touchstartY = e.changedTouches[0].screenY;
+    });
+
+    document.addEventListener("touchend", (e) => {
+      touchendX = e.changedTouches[0].screenX;
+      touchendY = e.changedTouches[0].screenY;
+      handleSwipe();
+    });
+
+    function handleSwipe() {
+      const diffX = touchendX - touchstartX;
+      const diffY = touchendY - touchstartY;
+
+      // Ensure the swipe is mostly horizontal and meets minimum distance
+      if (Math.abs(diffX) < minSwipeDistance || Math.abs(diffX) <= Math.abs(diffY)) return;
+
+      // Find active section
+      const activeSection = document.querySelector(".tab-section.active");
+      if (!activeSection) return;
+
+      const currentIndex = sections.indexOf(activeSection.id);
+      if (currentIndex === -1) return;
+
+      if (diffX < 0) {
+        // Swipe left -> go right (next)
+        if (currentIndex < sections.length - 1) {
+          switchTab(sections[currentIndex + 1]);
+        }
+      } else {
+        // Swipe right -> go left (prev)
+        if (currentIndex > 0) {
+          switchTab(sections[currentIndex - 1]);
+        }
+      }
+    }
   }
 
   function switchTab(sectionId) {
