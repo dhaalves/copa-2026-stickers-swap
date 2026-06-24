@@ -73,6 +73,7 @@ document.addEventListener("DOMContentLoaded", () => {
     matchGiveList: document.getElementById("match-give-list"),
     matchReceiveList: document.getElementById("match-receive-list"),
     btnShareWhatsapp: document.getElementById("btn-share-whatsapp"),
+    btnUpdateAlbumFromMatch: document.getElementById("btn-update-album-from-match"),
     importCodeTextarea: document.getElementById("import-code-textarea"),
     btnImportConfirm: document.getElementById("btn-import-confirm"),
   };
@@ -759,12 +760,61 @@ document.addEventListener("DOMContentLoaded", () => {
       el.matchReceiveList.previousElementSibling.previousElementSibling.textContent = `Figurinhas que VOCÊ RECEBE (0)`;
     }
 
+    // Update button visibility
+    if (totalSwaps > 0) {
+      el.btnUpdateAlbumFromMatch.classList.remove("hidden");
+    } else {
+      el.btnUpdateAlbumFromMatch.classList.add("hidden");
+    }
+
     // Store matches on button to build whatsapp link later
     el.btnShareWhatsapp.dataset.give = match.give.join(",");
     el.btnShareWhatsapp.dataset.receive = match.receive.join(",");
   }
 
+  function updateAlbumFromMatch() {
+    if (!state.partnerState) return;
+
+    const match = StickerParser.matchAlbums(state.myAlbum, state.partnerState);
+
+    if (match.give.length === 0 && match.receive.length === 0) {
+      alert("Não há figurinhas para atualizar (nenhuma troca pendente).");
+      return;
+    }
+
+    if (!confirm("Deseja atualizar seu álbum com essa troca? As figurinhas que você dá serão removidas das repetidas e as que recebe serão adicionadas ao seu álbum.")) {
+      return;
+    }
+
+    // 1. Remove figurinhas que eu dou (das minhas repetidas)
+    match.give.forEach((id) => {
+      const currentQty = state.myAlbum.repeated.get(id) || 0;
+      if (currentQty > 0) {
+        const newQty = currentQty - 1;
+        if (newQty === 0) {
+          state.myAlbum.repeated.delete(id);
+        } else {
+          state.myAlbum.repeated.set(id, newQty);
+        }
+      }
+    });
+
+    // 2. Adicionar figurinhas que eu recebo (ao meu álbum)
+    match.receive.forEach((id) => {
+      state.myAlbum.owned.add(id);
+    });
+
+    // 3. Salvar e atualizar interface
+    saveMyAlbumToStorage();
+    updateMyAlbumUI();
+    renderStickerGrid();
+    calculateMatch(); // Recalcula a combinação (agora deve ser 0)
+
+    alert("Álbum atualizado com sucesso!");
+  }
+
   function shareTradeOnWhatsapp() {
+
     const giveStr = el.btnShareWhatsapp.dataset.give || "";
     const receiveStr = el.btnShareWhatsapp.dataset.receive || "";
 
@@ -1163,6 +1213,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Share Whatsapp
     el.btnShareWhatsapp.addEventListener("click", shareTradeOnWhatsapp);
+
+    // Update Album from Match
+    el.btnUpdateAlbumFromMatch.addEventListener("click", updateAlbumFromMatch);
 
     // Swipe to navigate between tabs
     let touchstartX = 0;
