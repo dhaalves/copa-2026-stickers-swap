@@ -360,6 +360,7 @@ document.addEventListener("DOMContentLoaded", () => {
           : "team-section-header";
       header.innerHTML = `
                 <div class="team-header-left">
+                    <img class="team-flag" src="https://flagcdn.com/${team.iso}.svg" alt="${team.name}" loading="lazy" width="20" height="14">
                     <span class="team-code">${team.code}</span>
                     <span class="team-name">${team.name}</span>
                 </div>
