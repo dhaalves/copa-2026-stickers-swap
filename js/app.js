@@ -64,6 +64,9 @@ document.addEventListener("DOMContentLoaded", () => {
     btnShareMissing: document.getElementById("btn-share-missing"),
     btnShareRepeats: document.getElementById("btn-share-repeats"),
     gridRangeSelector: document.getElementById("grid-range-selector"),
+    gridSearchInput: document.getElementById("grid-search-input"),
+    gridSearchClear: document.getElementById("grid-search-clear"),
+    gridNoResults: document.getElementById("grid-no-results"),
     stickersGrid: document.getElementById("stickers-grid-container"),
     partnerCodeTextarea: document.getElementById("partner-code-textarea"),
     btnCalculateMatch: document.getElementById("btn-calculate-match"),
@@ -377,6 +380,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
       el.stickersGrid.appendChild(section);
     });
+
+    // Re-apply active filter after re-rendering the grid
+    if (el.gridSearchInput) {
+      applyGridFilter(el.gridSearchInput.value);
+    }
   }
 
   function getOwnedCountInRange(start, end) {
@@ -387,6 +395,125 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
     return count;
+  }
+
+  /* --------------------------------------------------------------------------
+     GRID FILTER (by team / team+number)
+     -------------------------------------------------------------------------- */
+
+  function parseFilterQuery(query) {
+    const trimmed = query.trim();
+    if (!trimmed) return null;
+
+    const lower = trimmed.toLowerCase();
+    let codeQuery = lower;
+    let numPart = null;
+
+    // "BRA 5", "BRA-5", "Brasil 5" (separator between code/name and number)
+    const withSep = lower.match(/^(.+?)[\s-]+(\d{1,2})$/);
+    // "BRA5", "MEX20" (number attached to code)
+    const attached = !withSep ? lower.match(/^([a-z]+?)(\d{1,2})$/) : null;
+
+    if (withSep) {
+      codeQuery = withSep[1].trim();
+      numPart = parseInt(withSep[2], 10);
+    } else if (attached) {
+      codeQuery = attached[1];
+      numPart = parseInt(attached[2], 10);
+    }
+
+    const allTeams = [
+      { code: "FWC", name: "FIFA World Cup" },
+      { code: "CC", name: "Coca-Cola" },
+      ...StickerParser.TEAMS.map((t) => ({ code: t.code, name: t.name })),
+    ];
+
+    const matchingCodes = [];
+    for (const team of allTeams) {
+      const codeLower = team.code.toLowerCase();
+      const nameLower = team.name.toLowerCase();
+      if (
+        codeLower === codeQuery ||
+        codeLower.startsWith(codeQuery) ||
+        nameLower.startsWith(codeQuery)
+      ) {
+        matchingCodes.push(team.code);
+      }
+    }
+
+    return { codes: matchingCodes, numPart, raw: trimmed };
+  }
+
+  function applyGridFilter(query) {
+    const filterResult = parseFilterQuery(query);
+    const clearBtn = el.gridSearchClear;
+    const noResultsEl = el.gridNoResults;
+
+    // Reset previous filter state
+    document
+      .querySelectorAll(".team-section")
+      .forEach((s) => s.classList.remove("hidden"));
+    document
+      .querySelectorAll(".group-title-divider")
+      .forEach((d) => d.classList.remove("hidden"));
+    document
+      .querySelectorAll(".sticker-cell")
+      .forEach((c) => c.classList.remove("filter-highlight", "filter-dim"));
+
+    if (!filterResult || filterResult.codes.length === 0) {
+      if (clearBtn) clearBtn.style.display = "";
+      if (noResultsEl) {
+        if (filterResult && filterResult.codes.length === 0) {
+          noResultsEl.textContent = `Nenhuma figurinha encontrada para "${filterResult.raw}"`;
+          noResultsEl.classList.remove("hidden");
+        } else {
+          noResultsEl.classList.add("hidden");
+        }
+      }
+      return;
+    }
+
+    if (clearBtn) clearBtn.style.display = "flex";
+    if (noResultsEl) noResultsEl.classList.add("hidden");
+
+    const { codes, numPart } = filterResult;
+
+    // Hide all group dividers when filtering
+    document
+      .querySelectorAll(".group-title-divider")
+      .forEach((d) => d.classList.add("hidden"));
+
+    let firstHighlighted = null;
+
+    document.querySelectorAll(".team-section").forEach((section) => {
+      const sectionCode = section.dataset.sectionId;
+      if (codes.includes(sectionCode)) {
+        section.classList.remove("hidden");
+        section.classList.remove("collapsed"); // expand matching team
+
+        if (numPart !== null) {
+          section.querySelectorAll(".sticker-cell").forEach((cell) => {
+            const id = parseInt(cell.dataset.id, 10);
+            const info = StickerParser.getStickerInfo(id);
+            if (info) {
+              const relInt = parseInt(info.relativeNumber, 10);
+              if (!isNaN(relInt) && relInt === numPart) {
+                cell.classList.add("filter-highlight");
+                if (!firstHighlighted) firstHighlighted = cell;
+              } else {
+                cell.classList.add("filter-dim");
+              }
+            }
+          });
+        }
+      } else {
+        section.classList.add("hidden");
+      }
+    });
+
+    if (firstHighlighted) {
+      firstHighlighted.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
   }
 
   function createStickerCell(i) {
@@ -966,6 +1093,22 @@ document.addEventListener("DOMContentLoaded", () => {
        ========================================================================== */
 
   function bindEvents() {
+    // Grid filter (team / team+number)
+    if (el.gridSearchInput) {
+      el.gridSearchInput.addEventListener("input", (e) => {
+        applyGridFilter(e.target.value);
+      });
+    }
+    if (el.gridSearchClear) {
+      el.gridSearchClear.addEventListener("click", () => {
+        if (el.gridSearchInput) {
+          el.gridSearchInput.value = "";
+          applyGridFilter("");
+          el.gridSearchInput.focus();
+        }
+      });
+    }
+
     // Tab switching
     if (el.tabMyAlbum) {
       el.tabMyAlbum.addEventListener("click", () => switchTab("section-my-album"));

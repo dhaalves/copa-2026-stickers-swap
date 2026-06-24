@@ -543,6 +543,39 @@ textarea:focus {
     transform: scale(0.98);
 }
 
+/* Filter states for sticker cells */
+.sticker-cell.filter-dim {
+    opacity: 0.18;
+    transform: scale(0.92);
+    pointer-events: none;
+}
+
+.sticker-cell.filter-highlight {
+    border-color: var(--accent-secondary);
+    box-shadow: 0 0 0 2px var(--accent-secondary), 0 0 14px var(--accent-secondary-glow);
+    animation: pulseHighlight 1.4s ease-in-out infinite;
+    z-index: 2;
+}
+
+@keyframes pulseHighlight {
+    0%, 100% {
+        box-shadow: 0 0 0 2px var(--accent-secondary), 0 0 8px var(--accent-secondary-glow);
+    }
+    50% {
+        box-shadow: 0 0 0 2px var(--accent-secondary), 0 0 22px var(--accent-secondary-glow);
+    }
+}
+
+.grid-no-results {
+    text-align: center;
+    padding: 24px 16px;
+    color: var(--text-muted);
+    font-size: 13px;
+    background: rgba(0, 0, 0, 0.15);
+    border: 1px dashed var(--border-color);
+    border-radius: var(--border-radius-sm);
+}
+
 .grid-instructions {
     text-align: center;
     font-size: 11px;

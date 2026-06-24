@@ -89,15 +89,20 @@
                         </div>
                     </div>
 
-
-
-                    <div class="grid-instructions">
-                        <p>Toque no centro da figurinha para marcar/desmarcar. Use os botões <strong>-</strong> e
-                            <strong>+</strong> para controlar repetidas.
-                        </p>
+                    <div class="grid-controls">
+                        <div class="search-box">
+                            <span class="search-icon">🔍</span>
+                            <input type="text" id="grid-search-input"
+                                placeholder="Filtrar por time (BRA) ou time+nº (BRA 5)"
+                                autocomplete="off" autocapitalize="characters" spellcheck="false" />
+                        </div>
+                        <div class="global-actions">
+                            <button class="action-btn" id="grid-search-clear" title="Limpar filtro"
+                                style="display:none;">✕</button>
+                        </div>
                     </div>
 
-
+                    <div class="grid-no-results hidden" id="grid-no-results"></div>
 
                     <!-- Sticker Grid -->
                     <div class="stickers-container" id="stickers-grid-container">
