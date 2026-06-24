@@ -263,3 +263,18 @@ for(const id of expectedMissingIds) {
 assert.strictEqual(parsedText.repeated.size, 3, 'Should have 3 repeated stickers from format 3');
 assert.strictEqual(parsedText.owned.size, StickerParser.TOTAL_STICKERS - expectedMissingIds.length, 'Should have all others as owned from format 3');
 console.log('   ✅ Plain text list tests passed.');
+
+// Test 6: Text Format Parsing with Quantities
+console.log('6. Testing text format parsing with quantities...');
+const textWithQty = `
+Repetidas
+FWC 🏆: 1 (x2), 2:3, 3(4), 4 x 5, 00(3), 5
+`;
+const parsedTextQty = StickerParser.parseAlbumCode(textWithQty);
+assert.strictEqual(parsedTextQty.repeated.get(2), 2); // FWC 1 -> ID 2
+assert.strictEqual(parsedTextQty.repeated.get(3), 3); // FWC 2 -> ID 3
+assert.strictEqual(parsedTextQty.repeated.get(4), 4); // FWC 3 -> ID 4
+assert.strictEqual(parsedTextQty.repeated.get(5), 5); // FWC 4 -> ID 5
+assert.strictEqual(parsedTextQty.repeated.get(1), 3); // FWC 00 -> ID 1
+assert.strictEqual(parsedTextQty.repeated.get(6), 1); // FWC 5 -> ID 6
+console.log('   ✅ Text format parsing with quantities passed.');

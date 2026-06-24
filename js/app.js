@@ -817,7 +817,7 @@ document.addEventListener("DOMContentLoaded", () => {
       });
   }
 
-  function formatStickerGroups(stickerIds) {
+  function formatStickerGroups(stickerIds, quantitiesMap) {
     const grouped = {};
 
     for (const id of stickerIds) {
@@ -826,7 +826,9 @@ document.addEventListener("DOMContentLoaded", () => {
         if (!grouped[info.code]) {
           grouped[info.code] = { flag: info.flag, items: [] };
         }
-        grouped[info.code].items.push(info.relativeNumber);
+
+        const qty = quantitiesMap ? quantitiesMap.get(parseInt(id, 10)) : 1;
+        grouped[info.code].items.push({ num: info.relativeNumber, qty: qty });
       }
     }
 
@@ -838,12 +840,19 @@ document.addEventListener("DOMContentLoaded", () => {
         let flag = grouped[code].flag || "";
 
         grouped[code].items.sort((a, b) => {
-          if (a === "00") return -1;
-          if (b === "00") return 1;
-          return parseInt(a) - parseInt(b);
+          if (a.num === "00") return -1;
+          if (b.num === "00") return 1;
+          return parseInt(a.num) - parseInt(b.num);
         });
 
-        msg += `${code} ${flag}: ${grouped[code].items.join(", ")}\n`;
+        const formattedItems = grouped[code].items.map(item => {
+          if (item.qty > 1) {
+            return `${item.num} (x${item.qty})`;
+          }
+          return item.num;
+        });
+
+        msg += `${code} ${flag}: ${formattedItems.join(", ")}\n`;
       }
     }
 
@@ -870,7 +879,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (repeatIds.length > 0) {
       msg += `\nRepetidas\n`;
-      msg += formatStickerGroups(repeatIds);
+      msg += formatStickerGroups(repeatIds, stateParam ? stateParam.repeated : state.myAlbum.repeated);
     }
 
     return msg.trim();
@@ -896,7 +905,7 @@ document.addEventListener("DOMContentLoaded", () => {
       for (const id of state.myAlbum.repeated.keys()) {
         repeatIds.push(id);
       }
-      msg += formatStickerGroups(repeatIds);
+      msg += formatStickerGroups(repeatIds, stateParam ? stateParam.repeated : state.myAlbum.repeated);
     }
 
     return msg;
