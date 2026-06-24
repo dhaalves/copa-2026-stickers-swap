@@ -559,14 +559,30 @@ const StickerParser = {
               const numbers = numbersStr.split(',').map(s => s.trim()).filter(s => s);
 
               for (const numStr of numbers) {
-                const id = this.getIdFromInfo(code, numStr);
+                const regex = /\s*(?:\(|x|\*|:|-)?\s*(?:x)?\s*(\d+)\s*(?:x)?\s*\)?$/i;
+                const matchQty = numStr.match(regex);
+
+                let qtyToAdd = 1;
+                let cleanNumStr = numStr.trim();
+
+                if (matchQty && cleanNumStr !== matchQty[1]) {
+                   // if the whole string is just a number, it's not a quantity, it's the sticker number.
+                   // we only extract quantity if there's an actual modifier like "(x2)" or ":3"
+                   // A simple check: does the string contain (, x, *, or :
+                   if (/[()xX*:]/.test(numStr)) {
+                      qtyToAdd = parseInt(matchQty[1], 10) || 1;
+                      cleanNumStr = numStr.replace(matchQty[0], '').trim();
+                   }
+                }
+
+                const id = this.getIdFromInfo(code, cleanNumStr);
                 if (id) {
                   if (currentMode === 'missing') {
                     missingSet.add(id);
                     hasMissing = true;
                   } else if (currentMode === 'repeated') {
-                    const qty = result.repeated.get(id) || 0;
-                    result.repeated.set(id, qty + 1);
+                    const currentQty = result.repeated.get(id) || 0;
+                    result.repeated.set(id, currentQty + qtyToAdd);
                   } else if (currentMode === 'owned') {
                     result.owned.add(id);
                   }
