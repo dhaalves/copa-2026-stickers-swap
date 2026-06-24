@@ -1082,7 +1082,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (repeatIds.length > 0) {
       msg += `\nRepetidas\n`;
-      msg += formatStickerGroups(repeatIds, stateParam ? stateParam.repeated : state.myAlbum.repeated);
+      msg += formatStickerGroups(repeatIds, state.myAlbum.repeated);
     }
 
     return msg.trim();
@@ -1108,7 +1108,7 @@ document.addEventListener("DOMContentLoaded", () => {
       for (const id of state.myAlbum.repeated.keys()) {
         repeatIds.push(id);
       }
-      msg += formatStickerGroups(repeatIds, stateParam ? stateParam.repeated : state.myAlbum.repeated);
+      msg += formatStickerGroups(repeatIds, state.myAlbum.repeated);
     }
 
     return msg;
