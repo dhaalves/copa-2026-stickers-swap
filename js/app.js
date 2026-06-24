@@ -183,7 +183,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const btnFwcCcUnfold = document.createElement("button");
     btnFwcCcUnfold.className = "group-action-btn btn-group-unfold";
-    btnFwcCcUnfold.textContent = "▼";
+    btnFwcCcUnfold.innerHTML =
+      '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m7 6 5 5 5-5"/><path d="m7 13 5 5 5-5"/></svg>';
     btnFwcCcUnfold.title = "Expandir grupo";
     btnFwcCcUnfold.addEventListener("click", (e) => {
       e.stopPropagation();
@@ -192,7 +193,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const btnFwcCcFold = document.createElement("button");
     btnFwcCcFold.className = "group-action-btn btn-group-fold";
-    btnFwcCcFold.textContent = "▲";
+    btnFwcCcFold.innerHTML =
+      '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m7 18 5-5 5 5"/><path d="m7 11 5-5 5 5"/></svg>';
     btnFwcCcFold.title = "Recolher grupo";
     btnFwcCcFold.addEventListener("click", (e) => {
       e.stopPropagation();
@@ -213,6 +215,7 @@ document.addEventListener("DOMContentLoaded", () => {
     fwcSection.dataset.groupName = "FWC & CC";
 
     const fwcOwned = getOwnedCountInRange(1, 20);
+    const fwcRepeats = getRepeatedCountInRange(1, 20);
     const fwcHeader = document.createElement("div");
     fwcHeader.className =
       fwcOwned === 20
@@ -225,7 +228,8 @@ document.addEventListener("DOMContentLoaded", () => {
             </div>
             <div class="team-header-right">
                 <span class="team-progress">${fwcOwned}/20</span>
-                <span class="chevron-icon">▼</span>
+                <span class="team-repeats"${fwcRepeats === 0 ? " hidden" : ""}>${fwcRepeats}</span>
+                <span class="chevron-icon"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></span>
             </div>
             <div class="team-progress-bar-container">
                 <div class="team-progress-bar-fill" style="width: ${(fwcOwned / 20) * 100}%"></div>
@@ -256,6 +260,7 @@ document.addEventListener("DOMContentLoaded", () => {
     ccSection.dataset.groupName = "FWC & CC";
 
     const ccOwned = getOwnedCountInRange(21, 34);
+    const ccRepeats = getRepeatedCountInRange(21, 34);
     const ccHeader = document.createElement("div");
     ccHeader.className =
       ccOwned === 14
@@ -268,7 +273,8 @@ document.addEventListener("DOMContentLoaded", () => {
             </div>
             <div class="team-header-right">
                 <span class="team-progress">${ccOwned}/14</span>
-                <span class="chevron-icon">▼</span>
+                <span class="team-repeats"${ccRepeats === 0 ? " hidden" : ""}>${ccRepeats}</span>
+                <span class="chevron-icon"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></span>
             </div>
             <div class="team-progress-bar-container">
                 <div class="team-progress-bar-fill" style="width: ${(ccOwned / 14) * 100}%"></div>
@@ -313,7 +319,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const btnGroupUnfold = document.createElement("button");
         btnGroupUnfold.className = "group-action-btn btn-group-unfold";
-        btnGroupUnfold.textContent = "▼";
+        btnGroupUnfold.innerHTML =
+          '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m7 6 5 5 5-5"/><path d="m7 13 5 5 5-5"/></svg>';
         btnGroupUnfold.title = "Expandir grupo";
         btnGroupUnfold.addEventListener("click", (e) => {
           e.stopPropagation();
@@ -322,7 +329,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const btnGroupFold = document.createElement("button");
         btnGroupFold.className = "group-action-btn btn-group-fold";
-        btnGroupFold.textContent = "▲";
+        btnGroupFold.innerHTML =
+          '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m7 18 5-5 5 5"/><path d="m7 11 5-5 5 5"/></svg>';
         btnGroupFold.title = "Recolher grupo";
         btnGroupFold.addEventListener("click", (e) => {
           e.stopPropagation();
@@ -344,6 +352,7 @@ document.addEventListener("DOMContentLoaded", () => {
       section.dataset.groupName = team.group;
 
       const ownedCount = getOwnedCountInRange(start, end);
+      const repeatsCount = getRepeatedCountInRange(start, end);
       const header = document.createElement("div");
       header.className =
         ownedCount === 20
@@ -356,7 +365,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 </div>
                 <div class="team-header-right">
                     <span class="team-progress">${ownedCount}/20</span>
-                    <span class="chevron-icon">▼</span>
+                    <span class="team-repeats"${repeatsCount === 0 ? " hidden" : ""}>${repeatsCount}</span>
+                    <span class="chevron-icon"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></span>
                 </div>
                 <div class="team-progress-bar-container">
                     <div class="team-progress-bar-fill" style="width: ${(ownedCount / 20) * 100}%"></div>
@@ -393,6 +403,14 @@ document.addEventListener("DOMContentLoaded", () => {
       if (state.myAlbum.owned.has(i)) {
         count++;
       }
+    }
+    return count;
+  }
+
+  function getRepeatedCountInRange(start, end) {
+    let count = 0;
+    for (let i = start; i <= end; i++) {
+      count += state.myAlbum.repeated.get(i) || 0;
     }
     return count;
   }
@@ -694,6 +712,13 @@ document.addEventListener("DOMContentLoaded", () => {
     const total = end - start + 1;
     const ownedCount = getOwnedCountInRange(start, end);
     progressEl.textContent = `${ownedCount}/${total}`;
+
+    const repeatsEl = sectionEl.querySelector(".team-repeats");
+    if (repeatsEl) {
+      const repeatsCount = getRepeatedCountInRange(start, end);
+      repeatsEl.textContent = `${repeatsCount}`;
+      repeatsEl.hidden = repeatsCount === 0;
+    }
 
     const progressBarFill = sectionEl.querySelector(".team-progress-bar-fill");
     if (progressBarFill) {
