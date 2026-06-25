@@ -13,7 +13,7 @@ const TEAMS = [
   { code: 'CZE', flag: '🇨🇿', name: 'República Tcheca', group: 'Grupo A' },
   // Group B
   { code: 'CAN', flag: '🇨🇦', name: 'Canadá', group: 'Grupo B' },
-  { code: 'BIH', flag: '🇧🇦', name: 'Bósnia-Herzegovina', group: 'Grupo B' },
+  { code: 'BIH', flag: '🇧🇦', name: 'Bósnia', group: 'Grupo B' },
   { code: 'QAT', flag: '🇶🇦', name: 'Catar', group: 'Grupo B' },
   { code: 'SUI', flag: '🇨🇭', name: 'Suíça', group: 'Grupo B' },
   // Group C
@@ -144,13 +144,74 @@ function getRanges(numbers) {
 }
 
 /**
+ * Encodes sorted repeats into a tagged delta-qty byte stream.
+ * Format: [2B count] then per entry (delta from previous id, qty):
+ *   0xxxxxxx              -> delta=1-127, qty=1        (1 byte)
+ *   10xxxxxx [qty]        -> delta=0-63,  qty=1-255    (2 bytes)
+ *   110xxxxx [dlo] [qty]  -> delta=0-8191, qty=1-255   (3 bytes)
+ */
+function encodeTaggedRepeats(repeats) {
+  const out = [(repeats.length >> 8) & 0xFF, repeats.length & 0xFF];
+  let prev = 0;
+  for (const rep of repeats) {
+    const delta = rep.id - prev;
+    const qty = Math.min(rep.qty, 255);
+    if (delta >= 1 && delta <= 127 && qty === 1) {
+      out.push(delta & 0x7F);
+    } else if (delta >= 0 && delta <= 63) {
+      out.push(0x80 | (delta & 0x3F), qty);
+    } else {
+      out.push(0xC0 | ((delta >> 8) & 0x1F), delta & 0xFF, qty);
+    }
+    prev = rep.id;
+  }
+  return new Uint8Array(out);
+}
+
+/**
+ * Decodes a tagged delta-qty repeat stream starting at offset.
+ * Returns { repeated: Map, offset } pointing past the consumed bytes.
+ */
+function decodeTaggedRepeats(buffer, offset, totalStickers) {
+  const numRepeats = (buffer[offset] << 8) | buffer[offset + 1];
+  offset += 2;
+  const repeated = new Map();
+  let prev = 0;
+  for (let i = 0; i < numRepeats; i++) {
+    if (offset >= buffer.length) break;
+    const b0 = buffer[offset];
+    let delta, qty, len;
+    if ((b0 & 0x80) === 0) {
+      delta = b0 & 0x7F;
+      qty = 1;
+      len = 1;
+    } else if ((b0 & 0xC0) === 0x80) {
+      delta = b0 & 0x3F;
+      qty = buffer[offset + 1];
+      len = 2;
+    } else {
+      delta = ((b0 & 0x1F) << 8) | buffer[offset + 1];
+      qty = buffer[offset + 2];
+      len = 3;
+    }
+    const id = prev + delta;
+    if (id >= 1 && id <= totalStickers && qty > 0) {
+      repeated.set(id, qty);
+    }
+    prev = id;
+    offset += len;
+  }
+  return { repeated, offset };
+}
+
+/**
  * Encodes album state into a highly compact binary format.
  */
 function encodeStateToBinary(state, totalStickers) {
   const ownedArr = Array.from(state.owned || []).map(Number).sort((a, b) => a - b);
-  
+
   const ownedRanges = getRanges(ownedArr);
-  
+
   const missing = [];
   for (let i = 1; i <= totalStickers; i++) {
     if (!state.owned || !state.owned.has(i)) {
@@ -159,17 +220,17 @@ function encodeStateToBinary(state, totalStickers) {
   }
   const missingRanges = getRanges(missing);
 
-  let mode = 1; // 1 = Bitmask, 2 = Owned Ranges, 3 = Missing Ranges
+  let ownedMode = 1; // 1 = Bitmask, 2 = Owned Ranges, 3 = Missing Ranges
   let rangeData = [];
-  
+
   const ownedRangeCost = ownedRanges.length * 4;
   const missingRangeCost = missingRanges.length * 4;
-  
+
   if (ownedRangeCost < 125 && ownedRangeCost <= missingRangeCost) {
-    mode = 2;
+    ownedMode = 2;
     rangeData = ownedRanges;
   } else if (missingRangeCost < 125) {
-    mode = 3;
+    ownedMode = 3;
     rangeData = missingRanges;
   }
 
@@ -183,8 +244,10 @@ function encodeStateToBinary(state, totalStickers) {
   }
   repeats.sort((a, b) => a.id - b.id);
 
-  let buffer;
-  if (mode === 1) {
+  const repeatBytes = encodeTaggedRepeats(repeats);
+
+  // Modes 4/5/6 mirror 1/2/3 for owned encoding but use tagged repeats.
+  if (ownedMode === 1) {
     const ownedBitmask = new Uint8Array(125);
     for (const id of ownedArr) {
       if (id >= 1 && id <= totalStickers) {
@@ -194,51 +257,30 @@ function encodeStateToBinary(state, totalStickers) {
         ownedBitmask[byteIdx] |= (1 << bitIdx);
       }
     }
-    buffer = new Uint8Array(1 + 125 + 2 + repeats.length * 3);
-    buffer[0] = 1; // Mode 1
+    const buffer = new Uint8Array(1 + 125 + repeatBytes.length);
+    buffer[0] = 4; // Mode 4 = Bitmask + tagged repeats
     buffer.set(ownedBitmask, 1);
-    
-    const numRepeats = repeats.length;
-    buffer[126] = (numRepeats >> 8) & 0xFF;
-    buffer[127] = numRepeats & 0xFF;
-    
-    let offset = 128;
-    for (const rep of repeats) {
-      buffer[offset] = (rep.id >> 8) & 0xFF;
-      buffer[offset + 1] = rep.id & 0xFF;
-      buffer[offset + 2] = Math.min(rep.qty, 255);
-      offset += 3;
-    }
-  } else {
-    const numRanges = rangeData.length;
-    buffer = new Uint8Array(1 + 2 + numRanges * 4 + 2 + repeats.length * 3);
-    buffer[0] = mode; // Mode 2 or 3
-    
-    buffer[1] = (numRanges >> 8) & 0xFF;
-    buffer[2] = numRanges & 0xFF;
-    
-    let offset = 3;
-    for (const r of rangeData) {
-      buffer[offset] = (r[0] >> 8) & 0xFF;
-      buffer[offset + 1] = r[0] & 0xFF;
-      buffer[offset + 2] = (r[1] >> 8) & 0xFF;
-      buffer[offset + 3] = r[1] & 0xFF;
-      offset += 4;
-    }
-    
-    const numRepeats = repeats.length;
-    buffer[offset] = (numRepeats >> 8) & 0xFF;
-    buffer[offset + 1] = numRepeats & 0xFF;
-    offset += 2;
-    
-    for (const rep of repeats) {
-      buffer[offset] = (rep.id >> 8) & 0xFF;
-      buffer[offset + 1] = rep.id & 0xFF;
-      buffer[offset + 2] = Math.min(rep.qty, 255);
-      offset += 3;
-    }
+    buffer.set(repeatBytes, 126);
+    return buffer;
   }
 
+  const numRanges = rangeData.length;
+  const rangeBytes = new Uint8Array(numRanges * 4);
+  let off = 0;
+  for (const r of rangeData) {
+    rangeBytes[off] = (r[0] >> 8) & 0xFF;
+    rangeBytes[off + 1] = r[0] & 0xFF;
+    rangeBytes[off + 2] = (r[1] >> 8) & 0xFF;
+    rangeBytes[off + 3] = r[1] & 0xFF;
+    off += 4;
+  }
+  const modeByte = ownedMode === 2 ? 5 : 6; // 5 = Owned Ranges + tagged, 6 = Missing Ranges + tagged
+  const buffer = new Uint8Array(1 + 2 + rangeBytes.length + repeatBytes.length);
+  buffer[0] = modeByte;
+  buffer[1] = (numRanges >> 8) & 0xFF;
+  buffer[2] = numRanges & 0xFF;
+  buffer.set(rangeBytes, 3);
+  buffer.set(repeatBytes, 3 + rangeBytes.length);
   return buffer;
 }
 
@@ -257,7 +299,9 @@ function decodeBinaryToState(buffer, totalStickers) {
     return state;
   }
 
-  const mode = buffer[0];
+  const rawMode = buffer[0];
+  const tagged = rawMode >= 4; // Modes 4/5/6 use tagged repeats; 1/2/3 are legacy
+  const mode = tagged ? rawMode - 3 : rawMode;
 
   if (mode === 1) {
     if (buffer.length < 128) return state;
@@ -269,17 +313,22 @@ function decodeBinaryToState(buffer, totalStickers) {
         state.owned.add(idx + 1);
       }
     }
-    
-    const numRepeats = (buffer[126] << 8) | buffer[127];
-    let offset = 128;
-    for (let i = 0; i < numRepeats; i++) {
-      if (offset + 2 >= buffer.length) break;
-      const id = (buffer[offset] << 8) | buffer[offset + 1];
-      const qty = buffer[offset + 2];
-      if (id >= 1 && id <= totalStickers && qty > 0) {
-        state.repeated.set(id, qty);
+
+    if (tagged) {
+      const result = decodeTaggedRepeats(buffer, 126, totalStickers);
+      state.repeated = result.repeated;
+    } else {
+      const numRepeats = (buffer[126] << 8) | buffer[127];
+      let offset = 128;
+      for (let i = 0; i < numRepeats; i++) {
+        if (offset + 2 >= buffer.length) break;
+        const id = (buffer[offset] << 8) | buffer[offset + 1];
+        const qty = buffer[offset + 2];
+        if (id >= 1 && id <= totalStickers && qty > 0) {
+          state.repeated.set(id, qty);
+        }
+        offset += 3;
       }
-      offset += 3;
     }
   } else if (mode === 2 || mode === 3) {
     let numRanges = (buffer[1] << 8) | buffer[2];
@@ -348,7 +397,12 @@ function decodeBinaryToState(buffer, totalStickers) {
       }
     }
 
-    if (offset + 1 < buffer.length) {
+    if (tagged) {
+      if (offset < buffer.length) {
+        const result = decodeTaggedRepeats(buffer, offset, totalStickers);
+        state.repeated = result.repeated;
+      }
+    } else if (offset + 1 < buffer.length) {
       const numRepeats = (buffer[offset] << 8) | buffer[offset + 1];
       offset += 2;
       for (let i = 0; i < numRepeats; i++) {
