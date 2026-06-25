@@ -118,6 +118,12 @@ body {
     display: flex;
     align-items: center;
     gap: 12px;
+    min-width: 0;
+}
+
+.brand > div:not(.logo-icon) {
+    min-width: 0;
+    overflow: hidden;
 }
 
 .header-actions {
@@ -178,6 +184,10 @@ body {
     background: var(--brand-gradient);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
 }
 
 .fwc-badge {
@@ -990,11 +1000,45 @@ textarea:focus {
         padding: 10px 6px;
         gap: 4px;
     }
+
+    #app-title {
+        font-size: 19px;
+        letter-spacing: -0.3px;
+    }
+
+    .fwc-badge {
+        font-size: 10px;
+        padding: 2px 5px;
+        margin-left: 6px;
+    }
+
+    .logo-icon {
+        font-size: 26px;
+    }
+
+    .brand {
+        gap: 8px;
+    }
 }
 
 @media (max-width: 360px) {
     .stickers-grid {
         grid-template-columns: repeat(4, 1fr);
+    }
+
+    #app-title {
+        font-size: 16px;
+    }
+
+    .fwc-badge {
+        font-size: 9px;
+        padding: 1px 4px;
+        margin-left: 4px;
+        letter-spacing: 0.3px;
+    }
+
+    .logo-icon {
+        font-size: 22px;
     }
 }
 
