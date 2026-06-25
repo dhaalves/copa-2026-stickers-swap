@@ -13,7 +13,7 @@ const TEAMS = [
   { code: 'CZE', flag: '🇨🇿', name: 'República Tcheca', group: 'Grupo A' },
   // Group B
   { code: 'CAN', flag: '🇨🇦', name: 'Canadá', group: 'Grupo B' },
-  { code: 'BIH', flag: '🇧🇦', name: 'Bósnia-Herzegovina', group: 'Grupo B' },
+  { code: 'BIH', flag: '🇧🇦', name: 'Bósnia', group: 'Grupo B' },
   { code: 'QAT', flag: '🇶🇦', name: 'Catar', group: 'Grupo B' },
   { code: 'SUI', flag: '🇨🇭', name: 'Suíça', group: 'Grupo B' },
   // Group C
