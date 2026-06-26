@@ -58,7 +58,7 @@ const TEAMS = [
   { code: 'JOR', flag: '🇯🇴', name: 'Jordânia', group: 'Grupo J' },
   // Group K
   { code: 'POR', flag: '🇵🇹', name: 'Portugal', group: 'Grupo K' },
-  { code: 'COD', flag: '🇨🇩', name: 'República do Congo', group: 'Grupo K' },
+  { code: 'COD', flag: '🇨🇩', name: 'Congo', group: 'Grupo K' },
   { code: 'UZB', flag: '🇺🇿', name: 'Uzbequistão', group: 'Grupo K' },
   { code: 'COL', flag: '🇨🇴', name: 'Colômbia', group: 'Grupo K' },
   // Group L
