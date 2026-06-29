@@ -1082,7 +1082,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (repeatIds.length > 0) {
       msg += `\nRepetidas\n`;
-      msg += formatStickerGroups(repeatIds, state.myAlbum.repeated);
+      msg += formatStickerGroups(repeatIds, stateParam.repeated);
     }
 
     return msg.trim();
