@@ -45,6 +45,10 @@
                             <button class="menu-item" id="menu-trigger-matching" data-target="section-matching">
                                 <span>🔄 Comparar & Trocar</span>
                             </button>
+                            <button class="menu-item" id="menu-trigger-independent-compare"
+                                data-target="section-independent-compare">
+                                <span>🆚 Comparar Terceiros</span>
+                            </button>
                             <button class="menu-item" id="menu-trigger-import" data-target="section-import">
                                 <span>📥 Importar</span>
                             </button>
@@ -167,6 +171,66 @@
                     <div class="empty-state-icon">🔍</div>
                     <h3>Nenhuma comparação feita ainda</h3>
                     <p>Cole o código de outro colecionador acima para descobrir quais figurinhas vocês podem trocar.</p>
+                </div>
+            </section>
+
+            <!-- Section: Independent Compare (two third-party albums) -->
+            <section class="tab-section" id="section-independent-compare">
+                <div class="card matching-input-panel">
+                    <h2>Comparar Dois Álbuns</h2>
+                    <p class="section-desc">Compare as listas de <strong>dois colecionadores quaisquer</strong> (não
+                        precisam ser o seu álbum) para descobrir o que eles podem trocar entre si. Cole as listas de
+                        <strong>Faltantes</strong> e <strong>Repetidas</strong> de cada um abaixo.</p>
+
+                    <label class="field-label" for="indep-album1-textarea">Álbum 1</label>
+                    <textarea id="indep-album1-textarea"
+                        placeholder="Cole aqui as Faltantes e Repetidas do Álbum 1..."></textarea>
+
+                    <label class="field-label with-top-gap" for="indep-album2-textarea">Álbum 2</label>
+                    <textarea id="indep-album2-textarea"
+                        placeholder="Cole aqui as Faltantes e Repetidas do Álbum 2..."></textarea>
+
+                    <button id="btn-calculate-independent-match" class="btn btn-primary btn-block"
+                        style="margin-top: 16px;">Comparar Álbuns</button>
+                </div>
+
+                <!-- Independent Match Results Panel -->
+                <div class="card match-results-card hidden" id="indep-match-results-panel">
+                    <div class="match-results-header">
+                        <div class="match-success-icon">🤝</div>
+                        <div>
+                            <h2>Combinações Encontradas!</h2>
+                            <p id="indep-match-summary-subtitle">Eles podem trocar 0 figurinha(s)</p>
+                        </div>
+                    </div>
+
+                    <div class="match-details-grid">
+                        <!-- Album 1 -> Album 2 -->
+                        <div class="match-col">
+                            <h3 id="indep-match-1to2-title">Álbum 1 dá para Álbum 2 (0)</h3>
+                            <p class="col-desc">Repetidas do Álbum 1 que o Álbum 2 não tem:</p>
+                            <div class="match-stickers-list" id="indep-match-1to2-list">
+                                <!-- list of sticker badges -->
+                            </div>
+                        </div>
+
+                        <!-- Album 2 -> Album 1 -->
+                        <div class="match-col">
+                            <h3 id="indep-match-2to1-title">Álbum 2 dá para Álbum 1 (0)</h3>
+                            <p class="col-desc">Repetidas do Álbum 2 que o Álbum 1 não tem:</p>
+                            <div class="match-stickers-list" id="indep-match-2to1-list">
+                                <!-- list of sticker badges -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- No Match / Empty State Panel -->
+                <div class="card empty-match-card" id="indep-match-empty-panel">
+                    <div class="empty-state-icon">🆚</div>
+                    <h3>Nenhuma comparação feita ainda</h3>
+                    <p>Cole as listas de Faltantes e Repetidas de dois colecionadores acima para ver o que eles podem
+                        trocar entre si.</p>
                 </div>
             </section>
 

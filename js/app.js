@@ -24,6 +24,7 @@ document.addEventListener("DOMContentLoaded", () => {
     statsRepeated: document.getElementById("stats-repeated"),
     tabMyAlbum: document.getElementById("menu-trigger-my-album"),
     tabMatching: document.getElementById("menu-trigger-matching"),
+    tabIndependentCompare: document.getElementById("menu-trigger-independent-compare"),
     tabImport: document.getElementById("menu-trigger-import"),
     tabStats: document.getElementById("menu-trigger-stats"),
     btnMenuToggle: document.getElementById("btn-menu-toggle"),
@@ -62,6 +63,17 @@ document.addEventListener("DOMContentLoaded", () => {
     btnUpdateAlbumFromMatch: document.getElementById("btn-update-album-from-match"),
     importCodeTextarea: document.getElementById("import-code-textarea"),
     btnImportConfirm: document.getElementById("btn-import-confirm"),
+    sectionIndependentCompare: document.getElementById("section-independent-compare"),
+    indepAlbum1Textarea: document.getElementById("indep-album1-textarea"),
+    indepAlbum2Textarea: document.getElementById("indep-album2-textarea"),
+    btnCalculateIndependentMatch: document.getElementById("btn-calculate-independent-match"),
+    indepMatchResultsPanel: document.getElementById("indep-match-results-panel"),
+    indepMatchEmptyPanel: document.getElementById("indep-match-empty-panel"),
+    indepMatchSummarySubtitle: document.getElementById("indep-match-summary-subtitle"),
+    indepMatch1to2Title: document.getElementById("indep-match-1to2-title"),
+    indepMatch2to1Title: document.getElementById("indep-match-2to1-title"),
+    indepMatch1to2List: document.getElementById("indep-match-1to2-list"),
+    indepMatch2to1List: document.getElementById("indep-match-2to1-list"),
   };
 
   /* ==========================================================================
@@ -744,6 +756,29 @@ document.addEventListener("DOMContentLoaded", () => {
        MATCH COMPARISON & WHATSAPP
        ========================================================================= */
 
+  /**
+   * Renders a list of sticker IDs as badges inside `listEl`, or an empty
+   * message when there are none. Shared by the my-album match panel and
+   * the independent (third-party) comparison panel.
+   */
+  function populateStickerBadgeList(listEl, ids, emptyText) {
+    listEl.innerHTML = "";
+    if (ids.length > 0) {
+      ids.forEach((id) => {
+        const info = StickerParser.getStickerInfo(id);
+        const badge = document.createElement("span");
+        badge.className = "match-sticker-badge";
+        badge.textContent = info ? `${info.code} ${info.relativeNumber}` : id;
+        if (info) {
+          badge.title = `${info.name} - #${info.relativeNumber}`;
+        }
+        listEl.appendChild(badge);
+      });
+    } else {
+      listEl.innerHTML = `<span class="col-desc">${emptyText}</span>`;
+    }
+  }
+
   function calculateMatch() {
     const partnerCode = el.partnerCodeTextarea.value.trim();
     if (!partnerCode) {
@@ -777,41 +812,19 @@ document.addEventListener("DOMContentLoaded", () => {
     el.matchSummarySubtitle.textContent = `Vocês podem negociar até ${totalSwaps} figurinha(s)!`;
 
     // Render Give List
-    el.matchGiveList.innerHTML = "";
-    if (match.give.length > 0) {
-      match.give.forEach((id) => {
-        const info = StickerParser.getStickerInfo(id);
-        const badge = document.createElement("span");
-        badge.className = "match-sticker-badge";
-        badge.textContent = info ? `${info.code} ${info.relativeNumber}` : id;
-        if (info) {
-          badge.title = `${info.name} - #${info.relativeNumber}`;
-        }
-        el.matchGiveList.appendChild(badge);
-      });
-    } else {
-      el.matchGiveList.innerHTML =
-        '<span class="col-desc">Nenhuma figurinha para dar.</span>';
-    }
+    populateStickerBadgeList(
+      el.matchGiveList,
+      match.give,
+      "Nenhuma figurinha para dar.",
+    );
     el.matchGiveTitle.textContent = `Figurinhas que VOCÊ DÁ (${match.give.length})`;
 
     // Render Receive List
-    el.matchReceiveList.innerHTML = "";
-    if (match.receive.length > 0) {
-      match.receive.forEach((id) => {
-        const info = StickerParser.getStickerInfo(id);
-        const badge = document.createElement("span");
-        badge.className = "match-sticker-badge";
-        badge.textContent = info ? `${info.code} ${info.relativeNumber}` : id;
-        if (info) {
-          badge.title = `${info.name} - #${info.relativeNumber}`;
-        }
-        el.matchReceiveList.appendChild(badge);
-      });
-    } else {
-      el.matchReceiveList.innerHTML =
-        '<span class="col-desc">Nenhuma figurinha para receber.</span>';
-    }
+    populateStickerBadgeList(
+      el.matchReceiveList,
+      match.receive,
+      "Nenhuma figurinha para receber.",
+    );
     el.matchReceiveTitle.textContent = `Figurinhas que VOCÊ RECEBE (${match.receive.length})`;
 
     // Update button visibility
@@ -824,6 +837,59 @@ document.addEventListener("DOMContentLoaded", () => {
     // Store matches on button to build whatsapp link later
     el.btnShareWhatsapp.dataset.give = match.give.join(",");
     el.btnShareWhatsapp.dataset.receive = match.receive.join(",");
+  }
+
+  /* ==========================================================================
+       INDEPENDENT COMPARISON (two third-party albums, not the user's own)
+       ========================================================================= */
+
+  function calculateIndependentMatch() {
+    const text1 = el.indepAlbum1Textarea.value.trim();
+    const text2 = el.indepAlbum2Textarea.value.trim();
+
+    if (!text1 || !text2) {
+      alert("Cole as listas dos dois álbuns para comparar.");
+      return;
+    }
+
+    try {
+      const album1State = StickerParser.parseAlbumCode(text1);
+      const album2State = StickerParser.parseAlbumCode(text2);
+      const match = StickerParser.matchAlbums(album1State, album2State);
+
+      renderIndependentMatchResults(match);
+    } catch (err) {
+      alert(
+        "Não foi possível processar as listas informadas. Verifique se colou corretamente as Faltantes e Repetidas de cada álbum.",
+      );
+      console.error(err);
+    }
+  }
+
+  function renderIndependentMatchResults(match) {
+    // Hide empty state, show results panel
+    el.indepMatchEmptyPanel.classList.add("hidden");
+    el.indepMatchResultsPanel.classList.remove("hidden");
+
+    // Update counts
+    const totalSwaps = match.give.length + match.receive.length;
+    el.indepMatchSummarySubtitle.textContent = `Eles podem trocar até ${totalSwaps} figurinha(s)!`;
+
+    // Album 1 -> Album 2 (Album 1's repeats that Album 2 lacks)
+    populateStickerBadgeList(
+      el.indepMatch1to2List,
+      match.give,
+      "Nenhuma figurinha para dar.",
+    );
+    el.indepMatch1to2Title.textContent = `Álbum 1 dá para Álbum 2 (${match.give.length})`;
+
+    // Album 2 -> Album 1 (Album 2's repeats that Album 1 lacks)
+    populateStickerBadgeList(
+      el.indepMatch2to1List,
+      match.receive,
+      "Nenhuma figurinha para dar.",
+    );
+    el.indepMatch2to1Title.textContent = `Álbum 2 dá para Álbum 1 (${match.receive.length})`;
   }
 
   function updateAlbumFromMatch() {
@@ -1093,6 +1159,9 @@ document.addEventListener("DOMContentLoaded", () => {
     if (el.tabMatching) {
       el.tabMatching.addEventListener("click", () => switchTab("section-matching"));
     }
+    if (el.tabIndependentCompare) {
+      el.tabIndependentCompare.addEventListener("click", () => switchTab("section-independent-compare"));
+    }
     if (el.tabImport) {
       el.tabImport.addEventListener("click", () => switchTab("section-import"));
     }
@@ -1197,6 +1266,9 @@ document.addEventListener("DOMContentLoaded", () => {
     // Calculate Match
     el.btnCalculateMatch.addEventListener("click", calculateMatch);
 
+    // Calculate Independent Match (two third-party albums)
+    el.btnCalculateIndependentMatch.addEventListener("click", calculateIndependentMatch);
+
     // Share Whatsapp
     el.btnShareWhatsapp.addEventListener("click", shareTradeOnWhatsapp);
 
@@ -1214,6 +1286,7 @@ document.addEventListener("DOMContentLoaded", () => {
       "section-my-album",
       "section-stats",
       "section-matching",
+      "section-independent-compare",
       "section-import"
     ];
 
