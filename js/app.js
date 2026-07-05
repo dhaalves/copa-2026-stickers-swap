@@ -10,26 +10,8 @@ document.addEventListener("DOMContentLoaded", () => {
       owned: new Set(),
       repeated: new Map(),
     },
-    currentGroup: "FWC & CC",
     partnerState: null,
   };
-
-  // Group definitions matching the 12 Copa groups plus FWC & CC
-  const GROUPS = [
-    { id: "FWC & CC", label: "FWC & CC" },
-    { id: "Grupo A", label: "Grupo A" },
-    { id: "Grupo B", label: "Grupo B" },
-    { id: "Grupo C", label: "Grupo C" },
-    { id: "Grupo D", label: "Grupo D" },
-    { id: "Grupo E", label: "Grupo E" },
-    { id: "Grupo F", label: "Grupo F" },
-    { id: "Grupo G", label: "Grupo G" },
-    { id: "Grupo H", label: "Grupo H" },
-    { id: "Grupo I", label: "Grupo I" },
-    { id: "Grupo J", label: "Grupo J" },
-    { id: "Grupo K", label: "Grupo K" },
-    { id: "Grupo L", label: "Grupo L" },
-  ];
 
   // Local Storage Keys
   const LOCAL_STORAGE_KEY = "copamatch26_my_album_code";
@@ -63,7 +45,6 @@ document.addEventListener("DOMContentLoaded", () => {
     btnShareCompare: document.getElementById("btn-share-compare"),
     btnShareMissing: document.getElementById("btn-share-missing"),
     btnShareRepeats: document.getElementById("btn-share-repeats"),
-    gridRangeSelector: document.getElementById("grid-range-selector"),
     gridSearchInput: document.getElementById("grid-search-input"),
     gridSearchClear: document.getElementById("grid-search-clear"),
     gridNoResults: document.getElementById("grid-no-results"),
@@ -73,6 +54,8 @@ document.addEventListener("DOMContentLoaded", () => {
     matchResultsPanel: document.getElementById("match-results-panel"),
     matchEmptyPanel: document.getElementById("match-empty-panel"),
     matchSummarySubtitle: document.getElementById("match-summary-subtitle"),
+    matchGiveTitle: document.getElementById("match-give-title"),
+    matchReceiveTitle: document.getElementById("match-receive-title"),
     matchGiveList: document.getElementById("match-give-list"),
     matchReceiveList: document.getElementById("match-receive-list"),
     btnShareWhatsapp: document.getElementById("btn-share-whatsapp"),
@@ -166,230 +149,148 @@ document.addEventListener("DOMContentLoaded", () => {
        UI RENDERING
        ========================================================================== */
 
+  /**
+   * Builds a collapsible group divider (e.g. "Grupo A") with fold/unfold
+   * controls, shared by the FWC & CC pseudo-group and the real team groups.
+   */
+  function createGroupDivider(groupName) {
+    const divider = document.createElement("div");
+    divider.className = "group-title-divider";
+    divider.dataset.group = groupName;
+
+    const titleText = document.createElement("span");
+    titleText.textContent = groupName;
+    divider.appendChild(titleText);
+
+    const actions = document.createElement("div");
+    actions.className = "group-actions";
+
+    const btnUnfold = document.createElement("button");
+    btnUnfold.className = "group-action-btn btn-group-unfold";
+    btnUnfold.innerHTML =
+      '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m7 6 5 5 5-5"/><path d="m7 13 5 5 5-5"/></svg>';
+    btnUnfold.title = "Expandir grupo";
+    btnUnfold.addEventListener("click", (e) => {
+      e.stopPropagation();
+      expandGroupTeams(groupName);
+    });
+
+    const btnFold = document.createElement("button");
+    btnFold.className = "group-action-btn btn-group-fold";
+    btnFold.innerHTML =
+      '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m7 18 5-5 5 5"/><path d="m7 11 5-5 5 5"/></svg>';
+    btnFold.title = "Recolher grupo";
+    btnFold.addEventListener("click", (e) => {
+      e.stopPropagation();
+      collapseGroupTeams(groupName);
+    });
+
+    actions.appendChild(btnUnfold);
+    actions.appendChild(btnFold);
+    divider.appendChild(actions);
+
+    return divider;
+  }
+
+  /**
+   * Builds a collapsible team section (header + sticker grid) for the
+   * given ID range. Used for FWC, CC, and each of the 48 real teams.
+   */
+  function createTeamSection(code, name, group, start, end, headerLeftHtml) {
+    const total = end - start + 1;
+
+    const section = document.createElement("div");
+    section.className = "team-section collapsed";
+    section.dataset.sectionId = code;
+    section.dataset.teamCode = code;
+    section.dataset.teamName = name;
+    section.dataset.groupName = group;
+
+    const ownedCount = getOwnedCountInRange(start, end);
+    const repeatsCount = getRepeatedCountInRange(start, end);
+    const header = document.createElement("div");
+    header.className =
+      ownedCount === total
+        ? "team-section-header team-complete"
+        : "team-section-header";
+    header.innerHTML = `
+            <div class="team-header-left">${headerLeftHtml}</div>
+            <div class="team-header-right">
+                <span class="team-progress">${ownedCount}/${total}</span>
+                <span class="team-repeats"${repeatsCount === 0 ? " hidden" : ""}>${repeatsCount}</span>
+                <span class="chevron-icon"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></span>
+            </div>
+            <div class="team-progress-bar-container">
+                <div class="team-progress-bar-fill" style="width: ${(ownedCount / total) * 100}%"></div>
+            </div>
+        `;
+
+    const grid = document.createElement("div");
+    grid.className = "stickers-grid";
+    for (let i = start; i <= end; i++) {
+      grid.appendChild(createStickerCell(i));
+    }
+
+    section.appendChild(header);
+    section.appendChild(grid);
+
+    header.addEventListener("click", () => {
+      section.classList.toggle("collapsed");
+    });
+
+    return section;
+  }
+
   function renderStickerGrid() {
     el.stickersGrid.innerHTML = "";
 
-    // Render Group title for FWC & CC
-    const fwcCcDivider = document.createElement("div");
-    fwcCcDivider.className = "group-title-divider";
-    fwcCcDivider.dataset.group = "FWC & CC";
+    el.stickersGrid.appendChild(createGroupDivider("FWC & CC"));
 
-    const fwcCcTitleText = document.createElement("span");
-    fwcCcTitleText.textContent = "FWC & CC";
-    fwcCcDivider.appendChild(fwcCcTitleText);
+    el.stickersGrid.appendChild(
+      createTeamSection(
+        "FWC",
+        "FIFA World Cup",
+        "FWC & CC",
+        1,
+        20,
+        '<span class="badge-icon badge-fwc">⭐</span><span class="team-name" style="font-family: var(--font-display); font-weight:800; font-size:15px;">FWC</span>',
+      ),
+    );
 
-    const fwcCcActions = document.createElement("div");
-    fwcCcActions.className = "group-actions";
+    el.stickersGrid.appendChild(
+      createTeamSection(
+        "CC",
+        "Coca-Cola",
+        "FWC & CC",
+        21,
+        34,
+        '<span class="badge-icon badge-cc">🥤</span><span class="team-name" style="font-family: var(--font-display); font-weight:800; font-size:15px;">CC</span>',
+      ),
+    );
 
-    const btnFwcCcUnfold = document.createElement("button");
-    btnFwcCcUnfold.className = "group-action-btn btn-group-unfold";
-    btnFwcCcUnfold.innerHTML =
-      '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m7 6 5 5 5-5"/><path d="m7 13 5 5 5-5"/></svg>';
-    btnFwcCcUnfold.title = "Expandir grupo";
-    btnFwcCcUnfold.addEventListener("click", (e) => {
-      e.stopPropagation();
-      expandGroupTeams("FWC & CC");
-    });
-
-    const btnFwcCcFold = document.createElement("button");
-    btnFwcCcFold.className = "group-action-btn btn-group-fold";
-    btnFwcCcFold.innerHTML =
-      '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m7 18 5-5 5 5"/><path d="m7 11 5-5 5 5"/></svg>';
-    btnFwcCcFold.title = "Recolher grupo";
-    btnFwcCcFold.addEventListener("click", (e) => {
-      e.stopPropagation();
-      collapseGroupTeams("FWC & CC");
-    });
-
-    fwcCcActions.appendChild(btnFwcCcUnfold);
-    fwcCcActions.appendChild(btnFwcCcFold);
-    fwcCcDivider.appendChild(fwcCcActions);
-    el.stickersGrid.appendChild(fwcCcDivider);
-
-    // 1. Render FWC section
-    const fwcSection = document.createElement("div");
-    fwcSection.className = "team-section collapsed";
-    fwcSection.dataset.sectionId = "FWC";
-    fwcSection.dataset.teamCode = "FWC";
-    fwcSection.dataset.teamName = "FIFA World Cup";
-    fwcSection.dataset.groupName = "FWC & CC";
-
-    const fwcOwned = getOwnedCountInRange(1, 20);
-    const fwcRepeats = getRepeatedCountInRange(1, 20);
-    const fwcHeader = document.createElement("div");
-    fwcHeader.className =
-      fwcOwned === 20
-        ? "team-section-header team-complete"
-        : "team-section-header";
-    fwcHeader.innerHTML = `
-            <div class="team-header-left">
-                <span class="badge-icon badge-fwc">⭐</span>
-                <span class="team-name" style="font-family: var(--font-display); font-weight:800; font-size:15px;">FWC</span>
-            </div>
-            <div class="team-header-right">
-                <span class="team-progress">${fwcOwned}/20</span>
-                <span class="team-repeats"${fwcRepeats === 0 ? " hidden" : ""}>${fwcRepeats}</span>
-                <span class="chevron-icon"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></span>
-            </div>
-            <div class="team-progress-bar-container">
-                <div class="team-progress-bar-fill" style="width: ${(fwcOwned / 20) * 100}%"></div>
-            </div>
-        `;
-
-    const fwcGrid = document.createElement("div");
-    fwcGrid.className = "stickers-grid";
-    for (let i = 1; i <= 20; i++) {
-      fwcGrid.appendChild(createStickerCell(i));
-    }
-
-    fwcSection.appendChild(fwcHeader);
-    fwcSection.appendChild(fwcGrid);
-
-    fwcHeader.addEventListener("click", () => {
-      fwcSection.classList.toggle("collapsed");
-    });
-
-    el.stickersGrid.appendChild(fwcSection);
-
-    // 2. Render CC section
-    const ccSection = document.createElement("div");
-    ccSection.className = "team-section collapsed";
-    ccSection.dataset.sectionId = "CC";
-    ccSection.dataset.teamCode = "CC";
-    ccSection.dataset.teamName = "Coca-Cola";
-    ccSection.dataset.groupName = "FWC & CC";
-
-    const ccOwned = getOwnedCountInRange(21, 34);
-    const ccRepeats = getRepeatedCountInRange(21, 34);
-    const ccHeader = document.createElement("div");
-    ccHeader.className =
-      ccOwned === 14
-        ? "team-section-header team-complete"
-        : "team-section-header";
-    ccHeader.innerHTML = `
-            <div class="team-header-left">
-                <span class="badge-icon badge-cc">🥤</span>
-                <span class="team-name" style="font-family: var(--font-display); font-weight:800; font-size:15px;">CC</span>
-            </div>
-            <div class="team-header-right">
-                <span class="team-progress">${ccOwned}/14</span>
-                <span class="team-repeats"${ccRepeats === 0 ? " hidden" : ""}>${ccRepeats}</span>
-                <span class="chevron-icon"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></span>
-            </div>
-            <div class="team-progress-bar-container">
-                <div class="team-progress-bar-fill" style="width: ${(ccOwned / 14) * 100}%"></div>
-            </div>
-        `;
-
-    const ccGrid = document.createElement("div");
-    ccGrid.className = "stickers-grid";
-    for (let i = 21; i <= 34; i++) {
-      ccGrid.appendChild(createStickerCell(i));
-    }
-
-    ccSection.appendChild(ccHeader);
-    ccSection.appendChild(ccGrid);
-
-    ccHeader.addEventListener("click", () => {
-      ccSection.classList.toggle("collapsed");
-    });
-
-    el.stickersGrid.appendChild(ccSection);
-
-    // 3. Render all Group A to L Teams
+    // Render all Group A to L Teams
     let lastGroup = null;
-    StickerParser.TEAMS.forEach((team) => {
-      const teamIdx = StickerParser.TEAMS.indexOf(team);
+    StickerParser.TEAMS.forEach((team, teamIdx) => {
       const start = 35 + teamIdx * 20;
       const end = start + 19;
 
-      // Insert Group title if it changed
       if (team.group !== lastGroup) {
         lastGroup = team.group;
-        const groupTitle = document.createElement("div");
-        groupTitle.className = "group-title-divider";
-        groupTitle.dataset.group = team.group;
-
-        const titleText = document.createElement("span");
-        titleText.textContent = team.group;
-        groupTitle.appendChild(titleText);
-
-        const groupActions = document.createElement("div");
-        groupActions.className = "group-actions";
-
-        const btnGroupUnfold = document.createElement("button");
-        btnGroupUnfold.className = "group-action-btn btn-group-unfold";
-        btnGroupUnfold.innerHTML =
-          '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m7 6 5 5 5-5"/><path d="m7 13 5 5 5-5"/></svg>';
-        btnGroupUnfold.title = "Expandir grupo";
-        btnGroupUnfold.addEventListener("click", (e) => {
-          e.stopPropagation();
-          expandGroupTeams(team.group);
-        });
-
-        const btnGroupFold = document.createElement("button");
-        btnGroupFold.className = "group-action-btn btn-group-fold";
-        btnGroupFold.innerHTML =
-          '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m7 18 5-5 5 5"/><path d="m7 11 5-5 5 5"/></svg>';
-        btnGroupFold.title = "Recolher grupo";
-        btnGroupFold.addEventListener("click", (e) => {
-          e.stopPropagation();
-          collapseGroupTeams(team.group);
-        });
-
-        groupActions.appendChild(btnGroupUnfold);
-        groupActions.appendChild(btnGroupFold);
-        groupTitle.appendChild(groupActions);
-
-        el.stickersGrid.appendChild(groupTitle);
+        el.stickersGrid.appendChild(createGroupDivider(team.group));
       }
 
-      const section = document.createElement("div");
-      section.className = "team-section collapsed";
-      section.dataset.sectionId = team.code;
-      section.dataset.teamCode = team.code;
-      section.dataset.teamName = team.name;
-      section.dataset.groupName = team.group;
-
-      const ownedCount = getOwnedCountInRange(start, end);
-      const repeatsCount = getRepeatedCountInRange(start, end);
-      const header = document.createElement("div");
-      header.className =
-        ownedCount === 20
-          ? "team-section-header team-complete"
-          : "team-section-header";
-      header.innerHTML = `
-                <div class="team-header-left">
-                    <img class="team-flag" src="https://flagcdn.com/${team.iso}.svg" alt="${team.name}" loading="lazy" width="20" height="14">
-                    <span class="team-code">${team.code}</span>
-                    <span class="team-name">${team.name}</span>
-                </div>
-                <div class="team-header-right">
-                    <span class="team-progress">${ownedCount}/20</span>
-                    <span class="team-repeats"${repeatsCount === 0 ? " hidden" : ""}>${repeatsCount}</span>
-                    <span class="chevron-icon"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></span>
-                </div>
-                <div class="team-progress-bar-container">
-                    <div class="team-progress-bar-fill" style="width: ${(ownedCount / 20) * 100}%"></div>
-                </div>
-            `;
-
-      const grid = document.createElement("div");
-      grid.className = "stickers-grid";
-
-      for (let i = start; i <= end; i++) {
-        const cell = createStickerCell(i);
-        grid.appendChild(cell);
-      }
-
-      section.appendChild(header);
-      section.appendChild(grid);
-
-      header.addEventListener("click", () => {
-        section.classList.toggle("collapsed");
-      });
-
-      el.stickersGrid.appendChild(section);
+      el.stickersGrid.appendChild(
+        createTeamSection(
+          team.code,
+          team.name,
+          team.group,
+          start,
+          end,
+          `<img class="team-flag" src="https://flagcdn.com/${team.iso}.svg" alt="${team.name}" loading="lazy" width="20" height="14">
+           <span class="team-code">${team.code}</span>
+           <span class="team-name">${team.name}</span>`,
+        ),
+      );
     });
 
     // Re-apply active filter after re-rendering the grid
@@ -420,11 +321,15 @@ document.addEventListener("DOMContentLoaded", () => {
      GRID FILTER (by team / team+number)
      -------------------------------------------------------------------------- */
 
+  function stripAccents(str) {
+    return str.normalize("NFD").replace(/[̀-ͯ]/g, "");
+  }
+
   function parseFilterQuery(query) {
     const trimmed = query.trim();
     if (!trimmed) return null;
 
-    const lower = trimmed.toLowerCase();
+    const lower = stripAccents(trimmed.toLowerCase());
     let codeQuery = lower;
     let numPart = null;
 
@@ -450,7 +355,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const matchingCodes = [];
     for (const team of allTeams) {
       const codeLower = team.code.toLowerCase();
-      const nameLower = team.name.toLowerCase();
+      const nameLower = stripAccents(team.name.toLowerCase());
       if (
         codeLower === codeQuery ||
         codeLower.startsWith(codeQuery) ||
@@ -884,13 +789,11 @@ document.addEventListener("DOMContentLoaded", () => {
         }
         el.matchGiveList.appendChild(badge);
       });
-      // Update title header count
-      el.matchGiveList.previousElementSibling.previousElementSibling.textContent = `Figurinhas que VOCÊ DÁ (${match.give.length})`;
     } else {
       el.matchGiveList.innerHTML =
         '<span class="col-desc">Nenhuma figurinha para dar.</span>';
-      el.matchGiveList.previousElementSibling.previousElementSibling.textContent = `Figurinhas que VOCÊ DÁ (0)`;
     }
+    el.matchGiveTitle.textContent = `Figurinhas que VOCÊ DÁ (${match.give.length})`;
 
     // Render Receive List
     el.matchReceiveList.innerHTML = "";
@@ -905,13 +808,11 @@ document.addEventListener("DOMContentLoaded", () => {
         }
         el.matchReceiveList.appendChild(badge);
       });
-      // Update title header count
-      el.matchReceiveList.previousElementSibling.previousElementSibling.textContent = `Figurinhas que VOCÊ RECEBE (${match.receive.length})`;
     } else {
       el.matchReceiveList.innerHTML =
         '<span class="col-desc">Nenhuma figurinha para receber.</span>';
-      el.matchReceiveList.previousElementSibling.previousElementSibling.textContent = `Figurinhas que VOCÊ RECEBE (0)`;
     }
+    el.matchReceiveTitle.textContent = `Figurinhas que VOCÊ RECEBE (${match.receive.length})`;
 
     // Update button visibility
     if (totalSwaps > 0) {
@@ -1114,6 +1015,53 @@ document.addEventListener("DOMContentLoaded", () => {
     return msg;
   }
 
+  /**
+   * Wires a share-modal button to try the native Web Share API first,
+   * falling back to copy-to-clipboard (with a temporary confirmation label).
+   * `buildShareOptions()` is called fresh on each click so the payload
+   * (album code, generated text, etc.) always reflects current state.
+   */
+  function setupShareButton(button, { buildShareOptions, copiedLabel }) {
+    button.addEventListener("click", () => {
+      const { clipboardText, shareData } = buildShareOptions();
+
+      const performClipboardFallback = () => {
+        navigator.clipboard
+          .writeText(clipboardText)
+          .then(() => {
+            const originalNodes = [...button.childNodes];
+            button.textContent = copiedLabel;
+            button.style.borderColor = "var(--accent-primary)";
+            button.style.background = "var(--accent-primary-glow)";
+            setTimeout(() => {
+              button.replaceChildren(...originalNodes);
+              button.style.borderColor = "";
+              button.style.background = "";
+              el.shareModal.classList.add("hidden");
+            }, 1500);
+          })
+          .catch((err) => {
+            console.error("Falha ao copiar:", err);
+          });
+      };
+
+      if (navigator.share) {
+        navigator
+          .share(shareData)
+          .then(() => {
+            el.shareModal.classList.add("hidden");
+          })
+          .catch((err) => {
+            if (err.name !== "AbortError") {
+              performClipboardFallback();
+            }
+          });
+      } else {
+        performClipboardFallback();
+      }
+    });
+  }
+
   /* ==========================================================================
        EVENT LISTENERS & NAVIGATION
        ========================================================================== */
@@ -1174,204 +1122,64 @@ document.addEventListener("DOMContentLoaded", () => {
       el.shareModal.classList.add("hidden");
     });
 
-    // Copy Share Code (Still present in markup though not in header)
-    if (el.btnCopyMyCode) {
-      el.btnCopyMyCode.addEventListener("click", () => {
-        const code = el.myCodeTextarea.value;
-        navigator.clipboard
-          .writeText(code)
-          .then(() => {
-            const originalNodes = [...el.btnCopyMyCode.childNodes];
-            el.btnCopyMyCode.textContent = "✅";
-            el.btnCopyMyCode.style.borderColor = "var(--accent-primary)";
-            el.btnCopyMyCode.style.background = "var(--accent-primary-glow)";
-            setTimeout(() => {
-              el.btnCopyMyCode.replaceChildren(...originalNodes);
-              el.btnCopyMyCode.style.borderColor = "";
-              el.btnCopyMyCode.style.background = "";
-            }, 1500);
-          })
-          .catch((err) => {
-            console.error("Falha ao copiar código:", err);
-          });
-      });
-    }
-
     // Share Album Link for Import
-    el.btnShareImport.addEventListener("click", () => {
-      const code = el.myCodeTextarea.value;
-      const shareUrl = `${window.location.origin}${window.location.pathname}?import=${encodeURIComponent(code)}`;
-
-      const performClipboardFallback = () => {
-        navigator.clipboard
-          .writeText(shareUrl)
-          .then(() => {
-            const originalNodes = [...el.btnShareImport.childNodes];
-            el.btnShareImport.textContent = "✅ Link copiado!";
-            el.btnShareImport.style.borderColor = "var(--accent-primary)";
-            el.btnShareImport.style.background = "var(--accent-primary-glow)";
-            setTimeout(() => {
-              el.btnShareImport.replaceChildren(...originalNodes);
-              el.btnShareImport.style.borderColor = "";
-              el.btnShareImport.style.background = "";
-              el.shareModal.classList.add("hidden");
-            }, 1500);
-          })
-          .catch((err) => {
-            console.error("Falha ao copiar link:", err);
-          });
-      };
-
-      if (navigator.share) {
-        navigator
-          .share({
+    setupShareButton(el.btnShareImport, {
+      copiedLabel: "✅ Link copiado!",
+      buildShareOptions: () => {
+        const code = el.myCodeTextarea.value;
+        const shareUrl = `${window.location.origin}${window.location.pathname}?import=${encodeURIComponent(code)}`;
+        return {
+          clipboardText: shareUrl,
+          shareData: {
             title: "Stickers Swap FWC 2026",
             text: "Confira as minhas figurinhas para importar o álbum!",
             url: shareUrl,
-          })
-          .then(() => {
-            el.shareModal.classList.add("hidden");
-          })
-          .catch((err) => {
-            if (err.name !== "AbortError") {
-              performClipboardFallback();
-            }
-          });
-      } else {
-        performClipboardFallback();
-      }
+          },
+        };
+      },
     });
 
     // Share Album Link for Compare
-    el.btnShareCompare.addEventListener("click", () => {
-      const code = el.myCodeTextarea.value;
-      const shareUrl = `${window.location.origin}${window.location.pathname}?compare=${encodeURIComponent(code)}`;
-
-      const performClipboardFallback = () => {
-        navigator.clipboard
-          .writeText(shareUrl)
-          .then(() => {
-            const originalNodes = [...el.btnShareCompare.childNodes];
-            el.btnShareCompare.textContent = "✅ Link copiado!";
-            el.btnShareCompare.style.borderColor = "var(--accent-primary)";
-            el.btnShareCompare.style.background = "var(--accent-primary-glow)";
-            setTimeout(() => {
-              el.btnShareCompare.replaceChildren(...originalNodes);
-              el.btnShareCompare.style.borderColor = "";
-              el.btnShareCompare.style.background = "";
-              el.shareModal.classList.add("hidden");
-            }, 1500);
-          })
-          .catch((err) => {
-            console.error("Falha ao copiar link:", err);
-          });
-      };
-
-      if (navigator.share) {
-        navigator
-          .share({
+    setupShareButton(el.btnShareCompare, {
+      copiedLabel: "✅ Link copiado!",
+      buildShareOptions: () => {
+        const code = el.myCodeTextarea.value;
+        const shareUrl = `${window.location.origin}${window.location.pathname}?compare=${encodeURIComponent(code)}`;
+        return {
+          clipboardText: shareUrl,
+          shareData: {
             title: "Stickers Swap FWC 2026",
             text: "Confira as minhas figurinhas e vamos comparar nossos álbuns!",
             url: shareUrl,
-          })
-          .then(() => {
-            el.shareModal.classList.add("hidden");
-          })
-          .catch((err) => {
-            if (err.name !== "AbortError") {
-              performClipboardFallback();
-            }
-          });
-      } else {
-        performClipboardFallback();
-      }
+          },
+        };
+      },
     });
 
     // Share Missing List
-    el.btnShareMissing.addEventListener("click", () => {
-      const msg = generateShareText("missing");
-
-      const performClipboardFallback = () => {
-        navigator.clipboard
-          .writeText(msg)
-          .then(() => {
-            const originalNodes = [...el.btnShareMissing.childNodes];
-            el.btnShareMissing.textContent = "✅ Lista copiada!";
-            el.btnShareMissing.style.borderColor = "var(--accent-primary)";
-            el.btnShareMissing.style.background = "var(--accent-primary-glow)";
-            setTimeout(() => {
-              el.btnShareMissing.replaceChildren(...originalNodes);
-              el.btnShareMissing.style.borderColor = "";
-              el.btnShareMissing.style.background = "";
-              el.shareModal.classList.add("hidden");
-            }, 1500);
-          })
-          .catch((err) => {
-            console.error("Falha ao copiar lista:", err);
-          });
-      };
-
-      if (navigator.share) {
-        navigator
-          .share({
-            title: "Minhas Figurinhas Faltantes - Copa 2026",
-            text: msg,
-          })
-          .then(() => {
-            el.shareModal.classList.add("hidden");
-          })
-          .catch((err) => {
-            if (err.name !== "AbortError") {
-              performClipboardFallback();
-            }
-          });
-      } else {
-        performClipboardFallback();
-      }
+    setupShareButton(el.btnShareMissing, {
+      copiedLabel: "✅ Lista copiada!",
+      buildShareOptions: () => {
+        const msg = generateShareText("missing");
+        return {
+          clipboardText: msg,
+          shareData: { title: "Minhas Figurinhas Faltantes - Copa 2026", text: msg },
+        };
+      },
     });
 
     // Share Repeats List
-    el.btnShareRepeats.addEventListener("click", () => {
-      const msg = generateShareText("repeats");
-
-      const performClipboardFallback = () => {
-        navigator.clipboard
-          .writeText(msg)
-          .then(() => {
-            const originalNodes = [...el.btnShareRepeats.childNodes];
-            el.btnShareRepeats.textContent = "✅ Lista copiada!";
-            el.btnShareRepeats.style.borderColor = "var(--accent-primary)";
-            el.btnShareRepeats.style.background = "var(--accent-primary-glow)";
-            setTimeout(() => {
-              el.btnShareRepeats.replaceChildren(...originalNodes);
-              el.btnShareRepeats.style.borderColor = "";
-              el.btnShareRepeats.style.background = "";
-              el.shareModal.classList.add("hidden");
-            }, 1500);
-          })
-          .catch((err) => {
-            console.error("Falha ao copiar lista:", err);
-          });
-      };
-
-      if (navigator.share) {
-        navigator
-          .share({
-            title: "Minhas Figurinhas Repetidas - Copa 2026",
-            text: msg,
-          })
-          .then(() => {
-            el.shareModal.classList.add("hidden");
-          })
-          .catch((err) => {
-            if (err.name !== "AbortError") {
-              performClipboardFallback();
-            }
-          });
-      } else {
-        performClipboardFallback();
-      }
+    setupShareButton(el.btnShareRepeats, {
+      copiedLabel: "✅ Lista copiada!",
+      buildShareOptions: () => {
+        const msg = generateShareText("repeats");
+        return {
+          clipboardText: msg,
+          shareData: { title: "Minhas Figurinhas Repetidas - Copa 2026", text: msg },
+        };
+      },
     });
+
     // Confirm Import from Tab
     el.btnImportConfirm.addEventListener("click", () => {
       const code = el.importCodeTextarea.value.trim();
