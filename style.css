@@ -379,6 +379,20 @@ body {
     margin-bottom: 16px;
 }
 
+.field-label {
+    display: block;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+}
+
+.field-label.with-top-gap {
+    margin-top: 16px;
+}
+
 /* ==========================================================================
    BUTTONS AND INPUTS
    ========================================================================== */
