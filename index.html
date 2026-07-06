@@ -87,9 +87,12 @@
                     <div class="card-header grid-header">
                         <h2>Marcar Figurinhas</h2>
                         <div class="grid-legend">
-                            <span class="legend-item"><span class="legend-dot empty"></span>Falta</span>
-                            <span class="legend-item"><span class="legend-dot owned"></span>Tenho</span>
-                            <span class="legend-item"><span class="legend-dot repeated"></span>Repetida</span>
+                            <button type="button" class="legend-item" data-status="empty" aria-pressed="false"
+                                title="Mostrar apenas Faltantes"><span class="legend-dot empty"></span>Falta</button>
+                            <button type="button" class="legend-item" data-status="owned" aria-pressed="false"
+                                title="Mostrar apenas Tenho"><span class="legend-dot owned"></span>Tenho</button>
+                            <button type="button" class="legend-item" data-status="repeated" aria-pressed="false"
+                                title="Mostrar apenas Repetidas"><span class="legend-dot repeated"></span>Repetida</button>
                         </div>
                     </div>
 
