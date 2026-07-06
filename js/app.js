@@ -29,11 +29,6 @@ document.addEventListener("DOMContentLoaded", () => {
     statsCompletion: document.getElementById("stats-completion"),
     statsProgressFill: document.getElementById("stats-progress-fill"),
     statsRepeated: document.getElementById("stats-repeated"),
-    tabMyAlbum: document.getElementById("menu-trigger-my-album"),
-    tabMatching: document.getElementById("menu-trigger-matching"),
-    tabIndependentCompare: document.getElementById("menu-trigger-independent-compare"),
-    tabImport: document.getElementById("menu-trigger-import"),
-    tabStats: document.getElementById("menu-trigger-stats"),
     btnMenuToggle: document.getElementById("btn-menu-toggle"),
     dropdownMenu: document.getElementById("dropdown-menu"),
     detailedStatCompletion: document.getElementById("detailed-stat-completion"),
@@ -72,7 +67,6 @@ document.addEventListener("DOMContentLoaded", () => {
     btnUpdateAlbumFromMatch: document.getElementById("btn-update-album-from-match"),
     importCodeTextarea: document.getElementById("import-code-textarea"),
     btnImportConfirm: document.getElementById("btn-import-confirm"),
-    sectionIndependentCompare: document.getElementById("section-independent-compare"),
     indepAlbum1Textarea: document.getElementById("indep-album1-textarea"),
     indepAlbum2Textarea: document.getElementById("indep-album2-textarea"),
     btnCalculateIndependentMatch: document.getElementById("btn-calculate-independent-match"),
@@ -188,6 +182,10 @@ document.addEventListener("DOMContentLoaded", () => {
        UI RENDERING
        ========================================================================== */
 
+  // Group name -> divider element, rebuilt on each grid render. Avoids
+  // document-wide selector scans when updating divider visibility.
+  const groupDividers = new Map();
+
   /**
    * Builds a collapsible group divider (e.g. "Grupo A") with fold/unfold
    * controls, shared by the FWC & CC pseudo-group and the real team groups.
@@ -196,6 +194,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const divider = document.createElement("div");
     divider.className = "group-title-divider";
     divider.dataset.group = groupName;
+    groupDividers.set(groupName, divider);
 
     const titleText = document.createElement("span");
     titleText.textContent = groupName;
@@ -248,14 +247,18 @@ document.addEventListener("DOMContentLoaded", () => {
     section.dataset.teamCode = code;
     section.dataset.teamName = name;
     section.dataset.groupName = group;
+    section.dataset.start = start;
+    section.dataset.end = end;
 
     // Default: collapsed. "Auto-expand missing" keeps incomplete teams open.
-    if (!(gridPrefs.autoExpandMissing && !isComplete)) {
-      section.classList.add("collapsed");
-    }
-    if (gridPrefs.hideCompleted && isComplete) {
-      section.classList.add("completion-hidden");
-    }
+    section.classList.toggle(
+      "collapsed",
+      isComplete || !gridPrefs.autoExpandMissing,
+    );
+    section.classList.toggle(
+      "completion-hidden",
+      gridPrefs.hideCompleted && isComplete,
+    );
 
     const header = document.createElement("div");
     header.className = isComplete
@@ -291,6 +294,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function renderStickerGrid() {
     el.stickersGrid.innerHTML = "";
+    groupDividers.clear();
 
     el.stickersGrid.appendChild(createGroupDivider("FWC & CC"));
 
@@ -342,9 +346,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     // Hide group dividers whose teams are all hidden by "hide completed"
-    document
-      .querySelectorAll(".group-title-divider")
-      .forEach((divider) => updateGroupDividerVisibility(divider.dataset.group));
+    updateAllGroupDividers();
 
     // Re-apply active filter after re-rendering the grid
     if (el.gridSearchInput) {
@@ -375,7 +377,7 @@ document.addEventListener("DOMContentLoaded", () => {
      -------------------------------------------------------------------------- */
 
   function stripAccents(str) {
-    return str.normalize("NFD").replace(/[̀-ͯ]/g, "");
+    return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   }
 
   function parseFilterQuery(query) {
@@ -659,20 +661,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const progressEl = sectionEl.querySelector(".team-progress");
     if (!progressEl) return;
 
-    let start, end;
-    if (code === "FWC") {
-      start = 1;
-      end = 20;
-    } else if (code === "CC") {
-      start = 21;
-      end = 34;
-    } else {
-      const team = StickerParser.TEAMS.find((t) => t.code === code);
-      const teamIdx = StickerParser.TEAMS.indexOf(team);
-      start = 35 + teamIdx * 20;
-      end = start + 19;
-    }
-
+    const start = parseInt(sectionEl.dataset.start, 10);
+    const end = parseInt(sectionEl.dataset.end, 10);
     const total = end - start + 1;
     const ownedCount = getOwnedCountInRange(start, end);
     progressEl.textContent = `${ownedCount}/${total}`;
@@ -705,14 +695,19 @@ document.addEventListener("DOMContentLoaded", () => {
     updateGroupDividerVisibility(sectionEl.dataset.groupName);
   }
 
+  /** True when every sticker in the section's ID range is owned. */
+  function isSectionComplete(sectionEl) {
+    const start = parseInt(sectionEl.dataset.start, 10);
+    const end = parseInt(sectionEl.dataset.end, 10);
+    return getOwnedCountInRange(start, end) === end - start + 1;
+  }
+
   /**
    * Hides a group divider when "hide completed" is on and every team in
    * that group is currently completion-hidden.
    */
   function updateGroupDividerVisibility(groupName) {
-    const divider = document.querySelector(
-      `.group-title-divider[data-group="${groupName}"]`,
-    );
+    const divider = groupDividers.get(groupName);
     if (!divider) return;
 
     if (!gridPrefs.hideCompleted) {
@@ -720,7 +715,7 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    const groupSections = document.querySelectorAll(
+    const groupSections = el.stickersGrid.querySelectorAll(
       `.team-section[data-group-name="${groupName}"]`,
     );
     const allHidden =
@@ -731,38 +726,54 @@ document.addEventListener("DOMContentLoaded", () => {
     divider.classList.toggle("completion-hidden", allHidden);
   }
 
+  function updateAllGroupDividers() {
+    groupDividers.forEach((_, groupName) =>
+      updateGroupDividerVisibility(groupName),
+    );
+  }
+
   /**
    * Restores "hide completed" visibility across all sections/dividers.
    * Used after a search filter (which force-reveals matches) is cleared.
    */
   function reapplyCompletionHiddenState() {
-    document.querySelectorAll(".team-section").forEach((section) => {
-      const header = section.querySelector(".team-section-header");
-      const isComplete = !!header && header.classList.contains("team-complete");
+    el.stickersGrid.querySelectorAll(".team-section").forEach((section) => {
       section.classList.toggle(
         "completion-hidden",
-        gridPrefs.hideCompleted && isComplete,
+        gridPrefs.hideCompleted && isSectionComplete(section),
       );
     });
-    document
-      .querySelectorAll(".group-title-divider")
-      .forEach((divider) => updateGroupDividerVisibility(divider.dataset.group));
+    updateAllGroupDividers();
+  }
+
+  /**
+   * Re-applies both view prefs to the existing grid, instead of rebuilding
+   * ~1000 cells (which would also lose the scroll position).
+   */
+  function applyGridViewPrefs() {
+    el.stickersGrid.querySelectorAll(".team-section").forEach((section) => {
+      section.classList.toggle(
+        "collapsed",
+        isSectionComplete(section) || !gridPrefs.autoExpandMissing,
+      );
+    });
+    reapplyCompletionHiddenState();
+    // A live search filter overrides pref visibility on matched sections
+    if (el.gridSearchInput && el.gridSearchInput.value.trim()) {
+      applyGridFilter(el.gridSearchInput.value);
+    }
   }
 
   /** Syncs the toggle button visuals with the current gridPrefs. */
   function reflectGridPrefButtons() {
-    if (el.btnToggleHideCompleted) {
-      el.btnToggleHideCompleted.setAttribute(
-        "aria-pressed",
-        String(gridPrefs.hideCompleted),
-      );
-    }
-    if (el.btnToggleAutoExpand) {
-      el.btnToggleAutoExpand.setAttribute(
-        "aria-pressed",
-        String(gridPrefs.autoExpandMissing),
-      );
-    }
+    el.btnToggleHideCompleted.setAttribute(
+      "aria-pressed",
+      String(gridPrefs.hideCompleted),
+    );
+    el.btnToggleAutoExpand.setAttribute(
+      "aria-pressed",
+      String(gridPrefs.autoExpandMissing),
+    );
   }
 
   function expandGroupTeams(groupName) {
@@ -914,37 +925,40 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+  /**
+   * Fills one column of a match-results panel: the badge list plus its
+   * "<label> (<count>)" title.
+   */
+  function renderMatchColumn(titleEl, listEl, label, ids, emptyText) {
+    populateStickerBadgeList(listEl, ids, emptyText);
+    titleEl.textContent = `${label} (${ids.length})`;
+  }
+
   function renderMatchResults(match) {
     // Hide empty state, show results panel
     el.matchEmptyPanel.classList.add("hidden");
     el.matchResultsPanel.classList.remove("hidden");
 
-    // Update counts
     const totalSwaps = match.give.length + match.receive.length;
     el.matchSummarySubtitle.textContent = `Vocês podem negociar até ${totalSwaps} figurinha(s)!`;
 
-    // Render Give List
-    populateStickerBadgeList(
+    renderMatchColumn(
+      el.matchGiveTitle,
       el.matchGiveList,
+      "Figurinhas que VOCÊ DÁ",
       match.give,
       "Nenhuma figurinha para dar.",
     );
-    el.matchGiveTitle.textContent = `Figurinhas que VOCÊ DÁ (${match.give.length})`;
-
-    // Render Receive List
-    populateStickerBadgeList(
+    renderMatchColumn(
+      el.matchReceiveTitle,
       el.matchReceiveList,
+      "Figurinhas que VOCÊ RECEBE",
       match.receive,
       "Nenhuma figurinha para receber.",
     );
-    el.matchReceiveTitle.textContent = `Figurinhas que VOCÊ RECEBE (${match.receive.length})`;
 
     // Update button visibility
-    if (totalSwaps > 0) {
-      el.btnUpdateAlbumFromMatch.classList.remove("hidden");
-    } else {
-      el.btnUpdateAlbumFromMatch.classList.add("hidden");
-    }
+    el.btnUpdateAlbumFromMatch.classList.toggle("hidden", totalSwaps === 0);
 
     // Store matches on button to build whatsapp link later
     el.btnShareWhatsapp.dataset.give = match.give.join(",");
@@ -983,25 +997,24 @@ document.addEventListener("DOMContentLoaded", () => {
     el.indepMatchEmptyPanel.classList.add("hidden");
     el.indepMatchResultsPanel.classList.remove("hidden");
 
-    // Update counts
     const totalSwaps = match.give.length + match.receive.length;
     el.indepMatchSummarySubtitle.textContent = `Eles podem trocar até ${totalSwaps} figurinha(s)!`;
 
-    // Album 1 -> Album 2 (Album 1's repeats that Album 2 lacks)
-    populateStickerBadgeList(
+    // "give" = Album 1's repeats that Album 2 lacks; "receive" = the inverse
+    renderMatchColumn(
+      el.indepMatch1to2Title,
       el.indepMatch1to2List,
+      "Álbum 1 dá para Álbum 2",
       match.give,
       "Nenhuma figurinha para dar.",
     );
-    el.indepMatch1to2Title.textContent = `Álbum 1 dá para Álbum 2 (${match.give.length})`;
-
-    // Album 2 -> Album 1 (Album 2's repeats that Album 1 lacks)
-    populateStickerBadgeList(
+    renderMatchColumn(
+      el.indepMatch2to1Title,
       el.indepMatch2to1List,
+      "Álbum 2 dá para Álbum 1",
       match.receive,
       "Nenhuma figurinha para dar.",
     );
-    el.indepMatch2to1Title.textContent = `Álbum 2 dá para Álbum 1 (${match.receive.length})`;
   }
 
   function updateAlbumFromMatch() {
@@ -1262,39 +1275,23 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // Grid view toggles: hide completed teams / auto-expand missing teams
-    if (el.btnToggleHideCompleted) {
-      el.btnToggleHideCompleted.addEventListener("click", () => {
-        gridPrefs.hideCompleted = !gridPrefs.hideCompleted;
+    [
+      [el.btnToggleHideCompleted, "hideCompleted"],
+      [el.btnToggleAutoExpand, "autoExpandMissing"],
+    ].forEach(([btn, pref]) => {
+      btn.addEventListener("click", () => {
+        gridPrefs[pref] = !gridPrefs[pref];
         saveGridPrefs();
         reflectGridPrefButtons();
-        renderStickerGrid();
+        applyGridViewPrefs();
       });
-    }
-    if (el.btnToggleAutoExpand) {
-      el.btnToggleAutoExpand.addEventListener("click", () => {
-        gridPrefs.autoExpandMissing = !gridPrefs.autoExpandMissing;
-        saveGridPrefs();
-        reflectGridPrefButtons();
-        renderStickerGrid();
-      });
-    }
+    });
 
-    // Tab switching
-    if (el.tabMyAlbum) {
-      el.tabMyAlbum.addEventListener("click", () => switchTab("section-my-album"));
-    }
-    if (el.tabStats) {
-      el.tabStats.addEventListener("click", () => switchTab("section-stats"));
-    }
-    if (el.tabMatching) {
-      el.tabMatching.addEventListener("click", () => switchTab("section-matching"));
-    }
-    if (el.tabIndependentCompare) {
-      el.tabIndependentCompare.addEventListener("click", () => switchTab("section-independent-compare"));
-    }
-    if (el.tabImport) {
-      el.tabImport.addEventListener("click", () => switchTab("section-import"));
-    }
+    // Tab switching — every menu item declares its section via data-target
+    const menuItems = document.querySelectorAll(".menu-item[data-target]");
+    menuItems.forEach((btn) => {
+      btn.addEventListener("click", () => switchTab(btn.dataset.target));
+    });
 
     // Toggle Dropdown Menu
     if (el.btnMenuToggle && el.dropdownMenu) {
@@ -1412,13 +1409,8 @@ document.addEventListener("DOMContentLoaded", () => {
     let touchendY = 0;
     const minSwipeDistance = 50;
 
-    const sections = [
-      "section-my-album",
-      "section-stats",
-      "section-matching",
-      "section-independent-compare",
-      "section-import"
-    ];
+    // Swipe order follows the dropdown menu order
+    const sections = Array.from(menuItems, (btn) => btn.dataset.target);
 
     document.addEventListener("touchstart", (e) => {
       touchstartX = e.changedTouches[0].screenX;
