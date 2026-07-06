@@ -88,8 +88,8 @@ js/app.js         UI controller: state, rendering, event handling, localStorage.
                   Single DOMContentLoaded → init() → loadMyAlbumFromStorage() →
                   renderStickerGrid() → updateMyAlbumUI() → bindEvents() → checkQueryParams().
 style.css         Dark theme, glassmorphism, mobile-first. All styling lives here.
-sw.js             Service worker. CACHE_NAME = 'stickers-swap-v2' — bump on deploys
-                  with changed assets or users will get stale content.
+sw.js             Service worker. CACHE_NAME (currently 'stickers-swap-v3') —
+                  bump on deploys with changed assets or users will get stale content.
 manifest.json     PWA manifest. Relative start_url.
 generate_icons.js Node script to regenerate icon-192.png / icon-512.png.
 js/test_parser.js Node script — the test suite. Run after any parser change.
@@ -148,4 +148,4 @@ Share links are generated in `app.js` → `btnShareImport` / `btnShareCompare` h
 - **`generateFullText(stateParam)` must use `stateParam.repeated`, not `state.myAlbum.repeated`.** The function converts a parsed album into text for the import/compare textarea — using the receiver's `state.myAlbum.repeated` silently drops repeat quantities (bug fixed 2026-06-29).
 - **Bump `sw.js` `CACHE_NAME`** when changing cached assets, or users get stale content.
 - **Never change the 994-sticker numbering** without bumping `StickerParser.VERSION` and adding backward-compat parsing.
-- `.agent/` and `artifacts/` are gitignored agent work dirs, not source.
+- `.agent/` and `artifacts/` are agent scratch dirs (not source) — keep them out of commits.
