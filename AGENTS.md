@@ -88,7 +88,7 @@ js/app.js         UI controller: state, rendering, event handling, localStorage.
                   Single DOMContentLoaded → init() → loadMyAlbumFromStorage() →
                   renderStickerGrid() → updateMyAlbumUI() → bindEvents() → checkQueryParams().
 style.css         Dark theme, glassmorphism, mobile-first. All styling lives here.
-sw.js             Service worker. CACHE_NAME (currently 'stickers-swap-v3') —
+sw.js             Service worker. CACHE_NAME (currently 'stickers-swap-v4') —
                   bump on deploys with changed assets or users will get stale content.
 manifest.json     PWA manifest. Relative start_url.
 generate_icons.js Node script to regenerate icon-192.png / icon-512.png.

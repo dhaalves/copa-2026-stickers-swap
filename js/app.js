@@ -23,6 +23,10 @@ document.addEventListener("DOMContentLoaded", () => {
     autoExpandMissing: false,
   };
 
+  // Active "Falta / Tenho / Repetida" legend filter (session-only, not persisted).
+  // One of "empty" | "owned" | "repeated" | null (no filter).
+  let activeStatusFilter = null;
+
   // DOM Elements
   const el = {
     title: document.getElementById("app-title"),
@@ -53,6 +57,7 @@ document.addEventListener("DOMContentLoaded", () => {
     gridNoResults: document.getElementById("grid-no-results"),
     btnToggleHideCompleted: document.getElementById("btn-toggle-hide-completed"),
     btnToggleAutoExpand: document.getElementById("btn-toggle-auto-expand"),
+    legendFilterBtns: document.querySelectorAll(".legend-item[data-status]"),
     stickersGrid: document.getElementById("stickers-grid-container"),
     partnerCodeTextarea: document.getElementById("partner-code-textarea"),
     btnCalculateMatch: document.getElementById("btn-calculate-match"),
@@ -348,6 +353,11 @@ document.addEventListener("DOMContentLoaded", () => {
     // Hide group dividers whose teams are all hidden by "hide completed"
     updateAllGroupDividers();
 
+    // Re-apply the legend status filter (if active) after rebuilding the grid
+    if (activeStatusFilter) {
+      applyStatusFilter();
+    }
+
     // Re-apply active filter after re-rendering the grid
     if (el.gridSearchInput) {
       applyGridFilter(el.gridSearchInput.value);
@@ -586,6 +596,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (info) {
       updateSectionProgress(info.code);
     }
+    updateStatusFilterForCell(cellElement);
   }
 
   function handleIncrementClick(id, cellElement) {
@@ -615,6 +626,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (info) {
       updateSectionProgress(info.code);
     }
+    updateStatusFilterForCell(cellElement);
   }
 
   function handleDecrementClick(id, cellElement) {
@@ -650,6 +662,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (info) {
       updateSectionProgress(info.code);
     }
+    updateStatusFilterForCell(cellElement);
   }
 
   function updateSectionProgress(code) {
@@ -685,12 +698,14 @@ document.addEventListener("DOMContentLoaded", () => {
       headerEl.classList.toggle("team-complete", isComplete);
     }
 
-    if (gridPrefs.autoExpandMissing) {
+    // A legend status filter forces every section expanded/unhidden; don't
+    // let gridPrefs re-collapse or re-hide it out from under the filter.
+    if (!activeStatusFilter && gridPrefs.autoExpandMissing) {
       sectionEl.classList.toggle("collapsed", isComplete);
     }
     sectionEl.classList.toggle(
       "completion-hidden",
-      gridPrefs.hideCompleted && isComplete,
+      !activeStatusFilter && gridPrefs.hideCompleted && isComplete,
     );
     updateGroupDividerVisibility(sectionEl.dataset.groupName);
   }
@@ -740,7 +755,7 @@ document.addEventListener("DOMContentLoaded", () => {
     el.stickersGrid.querySelectorAll(".team-section").forEach((section) => {
       section.classList.toggle(
         "completion-hidden",
-        gridPrefs.hideCompleted && isSectionComplete(section),
+        !activeStatusFilter && gridPrefs.hideCompleted && isSectionComplete(section),
       );
     });
     updateAllGroupDividers();
@@ -774,6 +789,104 @@ document.addEventListener("DOMContentLoaded", () => {
       "aria-pressed",
       String(gridPrefs.autoExpandMissing),
     );
+  }
+
+  /* --------------------------------------------------------------------------
+     LEGEND STATUS FILTER (Falta / Tenho / Repetida)
+     -------------------------------------------------------------------------- */
+
+  function getCellStatus(cellEl) {
+    if (cellEl.classList.contains("repeated")) return "repeated";
+    if (cellEl.classList.contains("owned")) return "owned";
+    return "empty";
+  }
+
+  /**
+   * Shows/hides one section's group divider based on whether every team
+   * section in that group is currently status-filter-hidden.
+   */
+  function updateGroupStatusFilterVisibility(groupName) {
+    const divider = groupDividers.get(groupName);
+    if (!divider) return;
+
+    if (!activeStatusFilter) {
+      divider.classList.remove("status-filter-hidden");
+      return;
+    }
+
+    const groupSections = el.stickersGrid.querySelectorAll(
+      `.team-section[data-group-name="${groupName}"]`,
+    );
+    const allHidden =
+      groupSections.length > 0 &&
+      Array.from(groupSections).every((s) =>
+        s.classList.contains("status-filter-hidden"),
+      );
+    divider.classList.toggle("status-filter-hidden", allHidden);
+  }
+
+  /**
+   * Applies (or clears) the legend status filter across the whole grid:
+   * only cells matching the selected status stay visible, every team
+   * section is force-expanded and unhidden so matches are visible across
+   * the whole album. Clearing restores the normal gridPrefs-based view.
+   */
+  function applyStatusFilter() {
+    if (!activeStatusFilter) {
+      el.stickersGrid
+        .querySelectorAll(".status-filter-hidden")
+        .forEach((node) => node.classList.remove("status-filter-hidden"));
+      applyGridViewPrefs();
+      return;
+    }
+
+    el.stickersGrid.querySelectorAll(".team-section").forEach((section) => {
+      section.classList.remove("collapsed", "completion-hidden");
+
+      let anyVisible = false;
+      section.querySelectorAll(".sticker-cell").forEach((cell) => {
+        const match = getCellStatus(cell) === activeStatusFilter;
+        cell.classList.toggle("status-filter-hidden", !match);
+        if (match) anyVisible = true;
+      });
+      section.classList.toggle("status-filter-hidden", !anyVisible);
+    });
+
+    groupDividers.forEach((_, groupName) =>
+      updateGroupStatusFilterVisibility(groupName),
+    );
+  }
+
+  /**
+   * Incrementally updates a single sticker cell (and its section/divider)
+   * after its owned/repeated state changes, instead of rescanning the
+   * whole grid. No-op when no status filter is active.
+   */
+  function updateStatusFilterForCell(cellElement) {
+    if (!activeStatusFilter) return;
+
+    const match = getCellStatus(cellElement) === activeStatusFilter;
+    cellElement.classList.toggle("status-filter-hidden", !match);
+
+    const section = cellElement.closest(".team-section");
+    if (!section) return;
+
+    const anyVisible = Array.from(
+      section.querySelectorAll(".sticker-cell"),
+    ).some((c) => !c.classList.contains("status-filter-hidden"));
+    section.classList.toggle("status-filter-hidden", !anyVisible);
+
+    updateGroupStatusFilterVisibility(section.dataset.groupName);
+  }
+
+  /** Syncs the legend filter buttons' pressed state with activeStatusFilter. */
+  function reflectStatusFilterButtons() {
+    el.legendFilterBtns.forEach((btn) => {
+      btn.setAttribute(
+        "aria-pressed",
+        String(btn.dataset.status === activeStatusFilter),
+      );
+    });
   }
 
   function expandGroupTeams(groupName) {
@@ -1261,7 +1374,16 @@ document.addEventListener("DOMContentLoaded", () => {
     // Grid filter (team / team+number)
     if (el.gridSearchInput) {
       el.gridSearchInput.addEventListener("input", (e) => {
-        applyGridFilter(e.target.value);
+        const value = e.target.value;
+        // Text search and the legend status filter are mutually exclusive
+        // view filters; clear the status filter before applying a search so
+        // the two never compose into stale hidden state.
+        if (value.trim() && activeStatusFilter) {
+          activeStatusFilter = null;
+          reflectStatusFilterButtons();
+          applyStatusFilter();
+        }
+        applyGridFilter(value);
       });
     }
     if (el.gridSearchClear) {
@@ -1283,7 +1405,36 @@ document.addEventListener("DOMContentLoaded", () => {
         gridPrefs[pref] = !gridPrefs[pref];
         saveGridPrefs();
         reflectGridPrefButtons();
-        applyGridViewPrefs();
+        // A status filter forces its own expand/unhide state; re-assert it
+        // instead of letting the prefs-based view clobber it.
+        if (activeStatusFilter) {
+          applyStatusFilter();
+        } else {
+          applyGridViewPrefs();
+        }
+      });
+    });
+
+    // Legend filter: click "Falta"/"Tenho"/"Repetida" to show only that
+    // status (hiding the other two) and expand every team section.
+    // Clicking the active one again clears the filter.
+    el.legendFilterBtns.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const status = btn.dataset.status;
+        activeStatusFilter = activeStatusFilter === status ? null : status;
+        reflectStatusFilterButtons();
+        // Text search and the legend status filter are mutually exclusive
+        // view filters; clear any active search before applying the status
+        // filter so the two never compose into stale hidden state.
+        if (
+          activeStatusFilter &&
+          el.gridSearchInput &&
+          el.gridSearchInput.value.trim()
+        ) {
+          el.gridSearchInput.value = "";
+          applyGridFilter("");
+        }
+        applyStatusFilter();
       });
     });
 
