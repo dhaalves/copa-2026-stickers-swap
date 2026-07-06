@@ -567,6 +567,18 @@ textarea:focus {
     transform: scale(0.98);
 }
 
+.action-btn.toggle-btn[aria-pressed="true"] {
+    background: var(--accent-primary-glow);
+    border-color: var(--accent-primary);
+    color: var(--accent-primary);
+}
+
+/* Sections/dividers hidden by the "hide completed" toggle */
+.team-section.completion-hidden,
+.group-title-divider.completion-hidden {
+    display: none;
+}
+
 /* Filter states for sticker cells */
 .sticker-cell.filter-dim {
     opacity: 0.18;

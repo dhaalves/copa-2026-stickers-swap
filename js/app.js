@@ -15,6 +15,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Local Storage Keys
   const LOCAL_STORAGE_KEY = "copamatch26_my_album_code";
+  const GRID_PREFS_KEY = "copamatch26_grid_prefs";
+
+  // Sticker grid view preferences (persisted)
+  const gridPrefs = {
+    hideCompleted: false,
+    autoExpandMissing: false,
+  };
 
   // DOM Elements
   const el = {
@@ -49,6 +56,8 @@ document.addEventListener("DOMContentLoaded", () => {
     gridSearchInput: document.getElementById("grid-search-input"),
     gridSearchClear: document.getElementById("grid-search-clear"),
     gridNoResults: document.getElementById("grid-no-results"),
+    btnToggleHideCompleted: document.getElementById("btn-toggle-hide-completed"),
+    btnToggleAutoExpand: document.getElementById("btn-toggle-auto-expand"),
     stickersGrid: document.getElementById("stickers-grid-container"),
     partnerCodeTextarea: document.getElementById("partner-code-textarea"),
     btnCalculateMatch: document.getElementById("btn-calculate-match"),
@@ -83,6 +92,8 @@ document.addEventListener("DOMContentLoaded", () => {
   function init() {
     // 1. Load my album state from localStorage or initialize
     loadMyAlbumFromStorage();
+    loadGridPrefs();
+    reflectGridPrefButtons();
 
     // 2. Render all sticker grids
     renderStickerGrid();
@@ -118,6 +129,22 @@ document.addEventListener("DOMContentLoaded", () => {
     } else {
       resetMyAlbumState();
     }
+  }
+
+  function loadGridPrefs() {
+    const raw = localStorage.getItem(GRID_PREFS_KEY);
+    if (!raw) return;
+    try {
+      const parsed = JSON.parse(raw);
+      gridPrefs.hideCompleted = !!parsed.hideCompleted;
+      gridPrefs.autoExpandMissing = !!parsed.autoExpandMissing;
+    } catch (err) {
+      // Ignore malformed prefs, keep defaults
+    }
+  }
+
+  function saveGridPrefs() {
+    localStorage.setItem(GRID_PREFS_KEY, JSON.stringify(gridPrefs));
   }
 
   function resetMyAlbumState() {
@@ -211,20 +238,29 @@ document.addEventListener("DOMContentLoaded", () => {
   function createTeamSection(code, name, group, start, end, headerLeftHtml) {
     const total = end - start + 1;
 
+    const ownedCount = getOwnedCountInRange(start, end);
+    const repeatsCount = getRepeatedCountInRange(start, end);
+    const isComplete = ownedCount === total;
+
     const section = document.createElement("div");
-    section.className = "team-section collapsed";
+    section.className = "team-section";
     section.dataset.sectionId = code;
     section.dataset.teamCode = code;
     section.dataset.teamName = name;
     section.dataset.groupName = group;
 
-    const ownedCount = getOwnedCountInRange(start, end);
-    const repeatsCount = getRepeatedCountInRange(start, end);
+    // Default: collapsed. "Auto-expand missing" keeps incomplete teams open.
+    if (!(gridPrefs.autoExpandMissing && !isComplete)) {
+      section.classList.add("collapsed");
+    }
+    if (gridPrefs.hideCompleted && isComplete) {
+      section.classList.add("completion-hidden");
+    }
+
     const header = document.createElement("div");
-    header.className =
-      ownedCount === total
-        ? "team-section-header team-complete"
-        : "team-section-header";
+    header.className = isComplete
+      ? "team-section-header team-complete"
+      : "team-section-header";
     header.innerHTML = `
             <div class="team-header-left">${headerLeftHtml}</div>
             <div class="team-header-right">
@@ -304,6 +340,11 @@ document.addEventListener("DOMContentLoaded", () => {
         ),
       );
     });
+
+    // Hide group dividers whose teams are all hidden by "hide completed"
+    document
+      .querySelectorAll(".group-title-divider")
+      .forEach((divider) => updateGroupDividerVisibility(divider.dataset.group));
 
     // Re-apply active filter after re-rendering the grid
     if (el.gridSearchInput) {
@@ -406,6 +447,10 @@ document.addEventListener("DOMContentLoaded", () => {
           noResultsEl.classList.add("hidden");
         }
       }
+      // Query cleared entirely: restore "hide completed" visibility
+      if (!filterResult) {
+        reapplyCompletionHiddenState();
+      }
       return;
     }
 
@@ -426,6 +471,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (codes.includes(sectionCode)) {
         section.classList.remove("hidden");
         section.classList.remove("collapsed"); // expand matching team
+        section.classList.remove("completion-hidden"); // reveal even if "hide completed" is on
 
         if (numPart !== null) {
           section.querySelectorAll(".sticker-cell").forEach((cell) => {
@@ -643,13 +689,79 @@ document.addEventListener("DOMContentLoaded", () => {
       progressBarFill.style.width = `${(ownedCount / total) * 100}%`;
     }
 
+    const isComplete = ownedCount === total;
     const headerEl = sectionEl.querySelector(".team-section-header");
     if (headerEl) {
-      if (ownedCount === total) {
-        headerEl.classList.add("team-complete");
-      } else {
-        headerEl.classList.remove("team-complete");
-      }
+      headerEl.classList.toggle("team-complete", isComplete);
+    }
+
+    if (gridPrefs.autoExpandMissing) {
+      sectionEl.classList.toggle("collapsed", isComplete);
+    }
+    sectionEl.classList.toggle(
+      "completion-hidden",
+      gridPrefs.hideCompleted && isComplete,
+    );
+    updateGroupDividerVisibility(sectionEl.dataset.groupName);
+  }
+
+  /**
+   * Hides a group divider when "hide completed" is on and every team in
+   * that group is currently completion-hidden.
+   */
+  function updateGroupDividerVisibility(groupName) {
+    const divider = document.querySelector(
+      `.group-title-divider[data-group="${groupName}"]`,
+    );
+    if (!divider) return;
+
+    if (!gridPrefs.hideCompleted) {
+      divider.classList.remove("completion-hidden");
+      return;
+    }
+
+    const groupSections = document.querySelectorAll(
+      `.team-section[data-group-name="${groupName}"]`,
+    );
+    const allHidden =
+      groupSections.length > 0 &&
+      Array.from(groupSections).every((s) =>
+        s.classList.contains("completion-hidden"),
+      );
+    divider.classList.toggle("completion-hidden", allHidden);
+  }
+
+  /**
+   * Restores "hide completed" visibility across all sections/dividers.
+   * Used after a search filter (which force-reveals matches) is cleared.
+   */
+  function reapplyCompletionHiddenState() {
+    document.querySelectorAll(".team-section").forEach((section) => {
+      const header = section.querySelector(".team-section-header");
+      const isComplete = !!header && header.classList.contains("team-complete");
+      section.classList.toggle(
+        "completion-hidden",
+        gridPrefs.hideCompleted && isComplete,
+      );
+    });
+    document
+      .querySelectorAll(".group-title-divider")
+      .forEach((divider) => updateGroupDividerVisibility(divider.dataset.group));
+  }
+
+  /** Syncs the toggle button visuals with the current gridPrefs. */
+  function reflectGridPrefButtons() {
+    if (el.btnToggleHideCompleted) {
+      el.btnToggleHideCompleted.setAttribute(
+        "aria-pressed",
+        String(gridPrefs.hideCompleted),
+      );
+    }
+    if (el.btnToggleAutoExpand) {
+      el.btnToggleAutoExpand.setAttribute(
+        "aria-pressed",
+        String(gridPrefs.autoExpandMissing),
+      );
     }
   }
 
@@ -1146,6 +1258,24 @@ document.addEventListener("DOMContentLoaded", () => {
           applyGridFilter("");
           el.gridSearchInput.focus();
         }
+      });
+    }
+
+    // Grid view toggles: hide completed teams / auto-expand missing teams
+    if (el.btnToggleHideCompleted) {
+      el.btnToggleHideCompleted.addEventListener("click", () => {
+        gridPrefs.hideCompleted = !gridPrefs.hideCompleted;
+        saveGridPrefs();
+        reflectGridPrefButtons();
+        renderStickerGrid();
+      });
+    }
+    if (el.btnToggleAutoExpand) {
+      el.btnToggleAutoExpand.addEventListener("click", () => {
+        gridPrefs.autoExpandMissing = !gridPrefs.autoExpandMissing;
+        saveGridPrefs();
+        reflectGridPrefButtons();
+        renderStickerGrid();
       });
     }
 
