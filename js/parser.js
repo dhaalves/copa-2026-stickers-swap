@@ -630,30 +630,8 @@ const StickerParser = {
    * @returns {string} e.g. "4,21,24-27"
    */
   compressToRanges(numbers) {
-    if (!numbers || numbers.length === 0) return '';
-    
-    const sorted = Array.from(new Set(numbers)).map(Number).sort((a, b) => a - b);
-    const ranges = [];
-    
-    let start = sorted[0];
-    let prev = sorted[0];
-    
-    for (let i = 1; i <= sorted.length; i++) {
-      const current = sorted[i];
-      if (current === prev + 1) {
-        prev = current;
-      } else {
-        if (start === prev) {
-          ranges.push(`${start}`);
-        } else {
-          ranges.push(`${start}-${prev}`);
-        }
-        start = current;
-        prev = current;
-      }
-    }
-    
-    return ranges.join(',');
+    const ranges = getRanges(numbers);
+    return ranges.map(r => r[0] === r[1] ? `${r[0]}` : `${r[0]}-${r[1]}`).join(',');
   },
 
   /**
