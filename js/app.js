@@ -350,7 +350,7 @@ document.addEventListener("DOMContentLoaded", () => {
       start: 35 + teamIdx * 20,
     }));
     if (gridPrefs.sortAlphabetical) {
-      teams.sort((a, b) => a.team.name.localeCompare(b.team.name, "pt-BR"));
+      teams.sort((a, b) => a.team.code.localeCompare(b.team.code));
     }
 
     teams.forEach(({ team, start }) => {
@@ -1109,7 +1109,13 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     let msg = "";
-    const teamOrder = ["FWC", ...StickerParser.TEAMS.map((t) => t.code), "CC"];
+    // Mirror the grid's sort preference: team codes A–Z when the alphabetical
+    // toggle is on, album (group) order otherwise. FWC and CC stay anchored.
+    const teamCodes = StickerParser.TEAMS.map((t) => t.code);
+    if (gridPrefs.sortAlphabetical) {
+      teamCodes.sort((a, b) => a.localeCompare(b));
+    }
+    const teamOrder = ["FWC", ...teamCodes, "CC"];
 
     for (const code of teamOrder) {
       if (grouped[code] && grouped[code].items.length > 0) {
