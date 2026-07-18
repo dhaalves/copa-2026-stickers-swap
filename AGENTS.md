@@ -88,7 +88,7 @@ js/app.js         UI controller: state, rendering, event handling, localStorage.
                   Single DOMContentLoaded → init() → loadMyAlbumFromStorage() →
                   renderStickerGrid() → updateMyAlbumUI() → bindEvents() → checkQueryParams().
 style.css         Dark theme, glassmorphism, mobile-first. All styling lives here.
-sw.js             Service worker. CACHE_NAME (currently 'stickers-swap-v5') —
+sw.js             Service worker. CACHE_NAME (currently 'stickers-swap-v8') —
                   bump on deploys with changed assets or users will get stale content.
 manifest.json     PWA manifest. Relative start_url.
 generate_icons.js Node script to regenerate icon-192.png / icon-512.png.
@@ -128,8 +128,9 @@ Handled by `calculateIndependentMatch()` / `renderIndependentMatchResults()` in 
 ## Grid view toggles
 
 `gridPrefs = { hideCompleted, sortAlphabetical }` in `app.js`, persisted as JSON to
-`localStorage["copamatch26_grid_prefs"]`. Sections render flat (FWC, CC, then the 48
-teams) — there are no group dividers. Team sections default to collapsed.
+`localStorage["copamatch26_grid_prefs"]`. Sections render flat (the 48 teams, then
+FWC and CC anchored at the end) — there are no group dividers. Team sections default
+to collapsed. Share lists mirror this: teams first, FWC/CC last.
 `hideCompleted` (`#btn-toggle-hide-completed`) adds a `completion-hidden` class to
 fully-owned teams. `sortAlphabetical` (`#btn-toggle-sort-alpha`) reorders the 48 team
 sections A–Z instead of album/group order via a full `renderStickerGrid()` — each

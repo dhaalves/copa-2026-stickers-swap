@@ -321,7 +321,7 @@ document.addEventListener("DOMContentLoaded", () => {
     return section;
   }
 
-  // Non-team sections rendered before the 48 teams
+  // Non-team sections rendered after the 48 teams, always anchored at the end
   const SPECIAL_SECTIONS = [
     { code: "FWC", name: "FIFA World Cup", start: 1, end: 20, badge: "badge-fwc", emoji: "⭐" },
     { code: "CC", name: "Coca-Cola", start: 21, end: 34, badge: "badge-cc", emoji: "🥤" },
@@ -329,18 +329,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function renderStickerGrid() {
     el.stickersGrid.innerHTML = "";
-
-    SPECIAL_SECTIONS.forEach(({ code, name, start, end, badge, emoji }) => {
-      el.stickersGrid.appendChild(
-        createTeamSection(
-          code,
-          name,
-          start,
-          end,
-          `<span class="badge-icon ${badge}">${emoji}</span><span class="team-name special-team-name">${code}</span>`,
-        ),
-      );
-    });
 
     // The 48 teams, in album (group) order or alphabetical per the sort pref.
     // Each team's ID range is fixed by its position in TEAMS, so compute the
@@ -363,6 +351,18 @@ document.addEventListener("DOMContentLoaded", () => {
           `<img class="team-flag" src="https://flagcdn.com/${team.iso}.svg" alt="${team.name}" loading="lazy" width="20" height="14">
            <span class="team-code">${team.code}</span>
            <span class="team-name">${team.name}</span>`,
+        ),
+      );
+    });
+
+    SPECIAL_SECTIONS.forEach(({ code, name, start, end, badge, emoji }) => {
+      el.stickersGrid.appendChild(
+        createTeamSection(
+          code,
+          name,
+          start,
+          end,
+          `<span class="badge-icon ${badge}">${emoji}</span><span class="team-name special-team-name">${code}</span>`,
         ),
       );
     });
@@ -1110,12 +1110,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
     let msg = "";
     // Mirror the grid's sort preference: team codes A–Z when the alphabetical
-    // toggle is on, album (group) order otherwise. FWC and CC stay anchored.
+    // toggle is on, album (group) order otherwise. FWC and CC stay anchored
+    // at the end.
     const teamCodes = StickerParser.TEAMS.map((t) => t.code);
     if (gridPrefs.sortAlphabetical) {
       teamCodes.sort((a, b) => a.localeCompare(b));
     }
-    const teamOrder = ["FWC", ...teamCodes, "CC"];
+    const teamOrder = [...teamCodes, "FWC", "CC"];
 
     for (const code of teamOrder) {
       if (grouped[code] && grouped[code].items.length > 0) {
