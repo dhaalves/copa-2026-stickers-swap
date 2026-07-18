@@ -20,7 +20,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // Sticker grid view preferences (persisted)
   const gridPrefs = {
     hideCompleted: false,
-    autoExpandMissing: false,
+    sortAlphabetical: false,
   };
 
   // Active "Falta / Tenho / Repetida" legend filter (session-only, not persisted).
@@ -56,7 +56,7 @@ document.addEventListener("DOMContentLoaded", () => {
     gridSearchClear: document.getElementById("grid-search-clear"),
     gridNoResults: document.getElementById("grid-no-results"),
     btnToggleHideCompleted: document.getElementById("btn-toggle-hide-completed"),
-    btnToggleAutoExpand: document.getElementById("btn-toggle-auto-expand"),
+    btnToggleSortAlpha: document.getElementById("btn-toggle-sort-alpha"),
     legendFilterBtns: document.querySelectorAll(".legend-item[data-status]"),
     stickersGrid: document.getElementById("stickers-grid-container"),
     partnerCodeTextarea: document.getElementById("partner-code-textarea"),
@@ -136,7 +136,7 @@ document.addEventListener("DOMContentLoaded", () => {
     try {
       const parsed = JSON.parse(raw);
       gridPrefs.hideCompleted = !!parsed.hideCompleted;
-      gridPrefs.autoExpandMissing = !!parsed.autoExpandMissing;
+      gridPrefs.sortAlphabetical = !!parsed.sortAlphabetical;
     } catch (err) {
       // Ignore malformed prefs, keep defaults
     }
@@ -187,59 +187,88 @@ document.addEventListener("DOMContentLoaded", () => {
        UI RENDERING
        ========================================================================== */
 
-  // Group name -> divider element, rebuilt on each grid render. Avoids
-  // document-wide selector scans when updating divider visibility.
-  const groupDividers = new Map();
+  const LONG_PRESS_MS = 600;
+  const LONG_PRESS_MOVE_TOLERANCE_PX = 10;
 
   /**
-   * Builds a collapsible group divider (e.g. "Grupo A") with fold/unfold
-   * controls, shared by the FWC & CC pseudo-group and the real team groups.
+   * Fires `onLongPress` when the element is pressed and held (mouse or
+   * touch) without moving. Returns a `consume()` function that reports —
+   * and clears — whether a long press just fired, so the element's click
+   * handler can skip its normal action after a long press.
    */
-  function createGroupDivider(groupName) {
-    const divider = document.createElement("div");
-    divider.className = "group-title-divider";
-    divider.dataset.group = groupName;
-    groupDividers.set(groupName, divider);
+  function attachLongPress(element, onLongPress) {
+    let timer = null;
+    let startX = 0;
+    let startY = 0;
+    let fired = false;
 
-    const titleText = document.createElement("span");
-    titleText.textContent = groupName;
-    divider.appendChild(titleText);
+    const cancel = () => {
+      clearTimeout(timer);
+      timer = null;
+    };
 
-    const actions = document.createElement("div");
-    actions.className = "group-actions";
+    element.addEventListener("pointerdown", (e) => {
+      if (e.button !== 0) return;
+      startX = e.clientX;
+      startY = e.clientY;
+      fired = false;
+      timer = setTimeout(() => {
+        fired = true;
+        onLongPress();
+      }, LONG_PRESS_MS);
+    });
+    element.addEventListener("pointermove", (e) => {
+      if (
+        timer !== null &&
+        Math.hypot(e.clientX - startX, e.clientY - startY) >
+          LONG_PRESS_MOVE_TOLERANCE_PX
+      ) {
+        cancel();
+      }
+    });
+    ["pointerup", "pointerleave", "pointercancel"].forEach((type) =>
+      element.addEventListener(type, cancel),
+    );
+    // A mobile long press would also open the context menu on top of ours
+    element.addEventListener("contextmenu", (e) => e.preventDefault());
 
-    const btnUnfold = document.createElement("button");
-    btnUnfold.className = "group-action-btn btn-group-unfold";
-    btnUnfold.innerHTML =
-      '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m7 6 5 5 5-5"/><path d="m7 13 5 5 5-5"/></svg>';
-    btnUnfold.title = "Expandir grupo";
-    btnUnfold.addEventListener("click", (e) => {
-      e.stopPropagation();
-      expandGroupTeams(groupName);
+    return () => {
+      const wasFired = fired;
+      fired = false;
+      return wasFired;
+    };
+  }
+
+  /** Long-press action: offer to mark every sticker in the section as owned. */
+  function promptCompleteSection(section, name) {
+    const start = parseInt(section.dataset.start, 10);
+    const end = parseInt(section.dataset.end, 10);
+    if (getOwnedCountInRange(start, end) === end - start + 1) return;
+    if (!confirm(`Marcar todas as figurinhas de ${name} como obtidas?`)) return;
+
+    for (let i = start; i <= end; i++) {
+      state.myAlbum.owned.add(i);
+    }
+    section.querySelectorAll(".sticker-cell").forEach((cell) => {
+      if (!cell.classList.contains("repeated")) {
+        cell.classList.add("owned");
+      }
     });
 
-    const btnFold = document.createElement("button");
-    btnFold.className = "group-action-btn btn-group-fold";
-    btnFold.innerHTML =
-      '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m7 18 5-5 5 5"/><path d="m7 11 5-5 5 5"/></svg>';
-    btnFold.title = "Recolher grupo";
-    btnFold.addEventListener("click", (e) => {
-      e.stopPropagation();
-      collapseGroupTeams(groupName);
-    });
-
-    actions.appendChild(btnUnfold);
-    actions.appendChild(btnFold);
-    divider.appendChild(actions);
-
-    return divider;
+    saveMyAlbumToStorage();
+    updateMyAlbumUI();
+    updateSectionProgress(section.dataset.sectionId);
+    if (activeStatusFilter) {
+      applyStatusFilter();
+    }
   }
 
   /**
    * Builds a collapsible team section (header + sticker grid) for the
-   * given ID range. Used for FWC, CC, and each of the 48 real teams.
+   * given ID range. Used for FWC, CC, and each of the 48 teams.
+   * Long-pressing the header offers to complete the whole section.
    */
-  function createTeamSection(code, name, group, start, end, headerLeftHtml) {
+  function createTeamSection(code, name, start, end, headerLeftHtml) {
     const total = end - start + 1;
 
     const ownedCount = getOwnedCountInRange(start, end);
@@ -247,19 +276,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const isComplete = ownedCount === total;
 
     const section = document.createElement("div");
-    section.className = "team-section";
+    section.className = "team-section collapsed";
     section.dataset.sectionId = code;
-    section.dataset.teamCode = code;
-    section.dataset.teamName = name;
-    section.dataset.groupName = group;
     section.dataset.start = start;
     section.dataset.end = end;
-
-    // Default: collapsed. "Auto-expand missing" keeps incomplete teams open.
-    section.classList.toggle(
-      "collapsed",
-      isComplete || !gridPrefs.autoExpandMissing,
-    );
     section.classList.toggle(
       "completion-hidden",
       gridPrefs.hideCompleted && isComplete,
@@ -290,68 +310,62 @@ document.addEventListener("DOMContentLoaded", () => {
     section.appendChild(header);
     section.appendChild(grid);
 
+    const consumeLongPress = attachLongPress(header, () =>
+      promptCompleteSection(section, name),
+    );
     header.addEventListener("click", () => {
+      if (consumeLongPress()) return;
       section.classList.toggle("collapsed");
     });
 
     return section;
   }
 
+  // Non-team sections rendered before the 48 teams
+  const SPECIAL_SECTIONS = [
+    { code: "FWC", name: "FIFA World Cup", start: 1, end: 20, badge: "badge-fwc", emoji: "⭐" },
+    { code: "CC", name: "Coca-Cola", start: 21, end: 34, badge: "badge-cc", emoji: "🥤" },
+  ];
+
   function renderStickerGrid() {
     el.stickersGrid.innerHTML = "";
-    groupDividers.clear();
 
-    el.stickersGrid.appendChild(createGroupDivider("FWC & CC"));
+    SPECIAL_SECTIONS.forEach(({ code, name, start, end, badge, emoji }) => {
+      el.stickersGrid.appendChild(
+        createTeamSection(
+          code,
+          name,
+          start,
+          end,
+          `<span class="badge-icon ${badge}">${emoji}</span><span class="team-name special-team-name">${code}</span>`,
+        ),
+      );
+    });
 
-    el.stickersGrid.appendChild(
-      createTeamSection(
-        "FWC",
-        "FIFA World Cup",
-        "FWC & CC",
-        1,
-        20,
-        '<span class="badge-icon badge-fwc">⭐</span><span class="team-name" style="font-family: var(--font-display); font-weight:800; font-size:15px;">FWC</span>',
-      ),
-    );
+    // The 48 teams, in album (group) order or alphabetical per the sort pref.
+    // Each team's ID range is fixed by its position in TEAMS, so compute the
+    // start before any reordering.
+    const teams = StickerParser.TEAMS.map((team, teamIdx) => ({
+      team,
+      start: 35 + teamIdx * 20,
+    }));
+    if (gridPrefs.sortAlphabetical) {
+      teams.sort((a, b) => a.team.name.localeCompare(b.team.name, "pt-BR"));
+    }
 
-    el.stickersGrid.appendChild(
-      createTeamSection(
-        "CC",
-        "Coca-Cola",
-        "FWC & CC",
-        21,
-        34,
-        '<span class="badge-icon badge-cc">🥤</span><span class="team-name" style="font-family: var(--font-display); font-weight:800; font-size:15px;">CC</span>',
-      ),
-    );
-
-    // Render all Group A to L Teams
-    let lastGroup = null;
-    StickerParser.TEAMS.forEach((team, teamIdx) => {
-      const start = 35 + teamIdx * 20;
-      const end = start + 19;
-
-      if (team.group !== lastGroup) {
-        lastGroup = team.group;
-        el.stickersGrid.appendChild(createGroupDivider(team.group));
-      }
-
+    teams.forEach(({ team, start }) => {
       el.stickersGrid.appendChild(
         createTeamSection(
           team.code,
           team.name,
-          team.group,
           start,
-          end,
+          start + 19,
           `<img class="team-flag" src="https://flagcdn.com/${team.iso}.svg" alt="${team.name}" loading="lazy" width="20" height="14">
            <span class="team-code">${team.code}</span>
            <span class="team-name">${team.name}</span>`,
         ),
       );
     });
-
-    // Hide group dividers whose teams are all hidden by "hide completed"
-    updateAllGroupDividers();
 
     // Re-apply the legend status filter (if active) after rebuilding the grid
     if (activeStatusFilter) {
@@ -443,9 +457,6 @@ document.addEventListener("DOMContentLoaded", () => {
       .querySelectorAll(".team-section")
       .forEach((s) => s.classList.remove("hidden"));
     document
-      .querySelectorAll(".group-title-divider")
-      .forEach((d) => d.classList.remove("hidden"));
-    document
       .querySelectorAll(".sticker-cell")
       .forEach((c) => c.classList.remove("filter-highlight", "filter-dim"));
 
@@ -470,11 +481,6 @@ document.addEventListener("DOMContentLoaded", () => {
     if (noResultsEl) noResultsEl.classList.add("hidden");
 
     const { codes, numPart } = filterResult;
-
-    // Hide all group dividers when filtering
-    document
-      .querySelectorAll(".group-title-divider")
-      .forEach((d) => d.classList.add("hidden"));
 
     let firstHighlighted = null;
 
@@ -557,7 +563,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (repeatedQty > 0) {
       cell.classList.add("repeated");
-      addBadge(cell, repeatedQty);
+      setBadge(cell, repeatedQty);
     } else if (isOwned) {
       cell.classList.add("owned");
     }
@@ -569,26 +575,8 @@ document.addEventListener("DOMContentLoaded", () => {
     return cell;
   }
 
-  function handleStickerClick(id, cellElement) {
-    const isOwned = state.myAlbum.owned.has(id);
-
-    // Clean cell state
-    cellElement.classList.remove("owned", "repeated");
-    const badge = cellElement.querySelector(".sticker-badge");
-    if (badge) badge.remove();
-
-    if (!isOwned) {
-      // Missing -> Owned
-      state.myAlbum.owned.add(id);
-      state.myAlbum.repeated.delete(id);
-      cellElement.classList.add("owned");
-    } else {
-      // Owned/Repeated -> Missing
-      state.myAlbum.owned.delete(id);
-      state.myAlbum.repeated.delete(id);
-    }
-
-    // Save and Update UI
+  /** Shared tail for any single-cell state change: persist + refresh UI. */
+  function commitCellChange(id, cellElement) {
     saveMyAlbumToStorage();
     updateMyAlbumUI();
 
@@ -599,70 +587,58 @@ document.addEventListener("DOMContentLoaded", () => {
     updateStatusFilterForCell(cellElement);
   }
 
-  function handleIncrementClick(id, cellElement) {
-    // If not owned, mark as owned first
-    if (!state.myAlbum.owned.has(id)) {
+  function handleStickerClick(id, cellElement) {
+    const isOwned = state.myAlbum.owned.has(id);
+
+    // Clean cell state
+    cellElement.classList.remove("owned", "repeated");
+    removeBadge(cellElement);
+    state.myAlbum.repeated.delete(id);
+
+    if (!isOwned) {
+      // Missing -> Owned
       state.myAlbum.owned.add(id);
+      cellElement.classList.add("owned");
+    } else {
+      // Owned/Repeated -> Missing
+      state.myAlbum.owned.delete(id);
     }
 
-    const currentQty = state.myAlbum.repeated.get(id) || 0;
-    const newQty = currentQty + 1;
+    commitCellChange(id, cellElement);
+  }
+
+  function handleIncrementClick(id, cellElement) {
+    state.myAlbum.owned.add(id);
+    const newQty = (state.myAlbum.repeated.get(id) || 0) + 1;
     state.myAlbum.repeated.set(id, newQty);
 
     cellElement.classList.remove("owned");
     cellElement.classList.add("repeated");
+    setBadge(cellElement, newQty);
 
-    let badge = cellElement.querySelector(".sticker-badge");
-    if (badge) {
-      badge.textContent = `+${newQty}`;
-    } else {
-      addBadge(cellElement, newQty);
-    }
-
-    saveMyAlbumToStorage();
-    updateMyAlbumUI();
-
-    const info = StickerParser.getStickerInfo(id);
-    if (info) {
-      updateSectionProgress(info.code);
-    }
-    updateStatusFilterForCell(cellElement);
+    commitCellChange(id, cellElement);
   }
 
   function handleDecrementClick(id, cellElement) {
     if (!state.myAlbum.owned.has(id)) return;
 
     const currentQty = state.myAlbum.repeated.get(id) || 0;
-    if (currentQty > 0) {
-      const newQty = currentQty - 1;
-      if (newQty === 0) {
-        state.myAlbum.repeated.delete(id);
-        cellElement.classList.remove("repeated");
-        cellElement.classList.add("owned");
-        const badge = cellElement.querySelector(".sticker-badge");
-        if (badge) badge.remove();
-      } else {
-        state.myAlbum.repeated.set(id, newQty);
-        const badge = cellElement.querySelector(".sticker-badge");
-        if (badge) badge.textContent = `+${newQty}`;
-      }
+    if (currentQty > 1) {
+      state.myAlbum.repeated.set(id, currentQty - 1);
+      setBadge(cellElement, currentQty - 1);
+    } else if (currentQty === 1) {
+      state.myAlbum.repeated.delete(id);
+      cellElement.classList.remove("repeated");
+      cellElement.classList.add("owned");
+      removeBadge(cellElement);
     } else {
       // Dec from 0 repeats -> marks as missing
       state.myAlbum.owned.delete(id);
-      state.myAlbum.repeated.delete(id);
       cellElement.classList.remove("owned", "repeated");
-      const badge = cellElement.querySelector(".sticker-badge");
-      if (badge) badge.remove();
+      removeBadge(cellElement);
     }
 
-    saveMyAlbumToStorage();
-    updateMyAlbumUI();
-
-    const info = StickerParser.getStickerInfo(id);
-    if (info) {
-      updateSectionProgress(info.code);
-    }
-    updateStatusFilterForCell(cellElement);
+    commitCellChange(id, cellElement);
   }
 
   function updateSectionProgress(code) {
@@ -698,16 +674,12 @@ document.addEventListener("DOMContentLoaded", () => {
       headerEl.classList.toggle("team-complete", isComplete);
     }
 
-    // A legend status filter forces every section expanded/unhidden; don't
-    // let gridPrefs re-collapse or re-hide it out from under the filter.
-    if (!activeStatusFilter && gridPrefs.autoExpandMissing) {
-      sectionEl.classList.toggle("collapsed", isComplete);
-    }
+    // A legend status filter forces every section unhidden; don't let
+    // gridPrefs re-hide it out from under the filter.
     sectionEl.classList.toggle(
       "completion-hidden",
       !activeStatusFilter && gridPrefs.hideCompleted && isComplete,
     );
-    updateGroupDividerVisibility(sectionEl.dataset.groupName);
   }
 
   /** True when every sticker in the section's ID range is owned. */
@@ -718,37 +690,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   /**
-   * Hides a group divider when "hide completed" is on and every team in
-   * that group is currently completion-hidden.
-   */
-  function updateGroupDividerVisibility(groupName) {
-    const divider = groupDividers.get(groupName);
-    if (!divider) return;
-
-    if (!gridPrefs.hideCompleted) {
-      divider.classList.remove("completion-hidden");
-      return;
-    }
-
-    const groupSections = el.stickersGrid.querySelectorAll(
-      `.team-section[data-group-name="${groupName}"]`,
-    );
-    const allHidden =
-      groupSections.length > 0 &&
-      Array.from(groupSections).every((s) =>
-        s.classList.contains("completion-hidden"),
-      );
-    divider.classList.toggle("completion-hidden", allHidden);
-  }
-
-  function updateAllGroupDividers() {
-    groupDividers.forEach((_, groupName) =>
-      updateGroupDividerVisibility(groupName),
-    );
-  }
-
-  /**
-   * Restores "hide completed" visibility across all sections/dividers.
+   * Restores "hide completed" visibility across all sections.
    * Used after a search filter (which force-reveals matches) is cleared.
    */
   function reapplyCompletionHiddenState() {
@@ -758,19 +700,16 @@ document.addEventListener("DOMContentLoaded", () => {
         !activeStatusFilter && gridPrefs.hideCompleted && isSectionComplete(section),
       );
     });
-    updateAllGroupDividers();
   }
 
   /**
-   * Re-applies both view prefs to the existing grid, instead of rebuilding
-   * ~1000 cells (which would also lose the scroll position).
+   * Re-applies the default collapsed view + "hide completed" pref to the
+   * existing grid, instead of rebuilding ~1000 cells (which would also
+   * lose the scroll position).
    */
   function applyGridViewPrefs() {
     el.stickersGrid.querySelectorAll(".team-section").forEach((section) => {
-      section.classList.toggle(
-        "collapsed",
-        isSectionComplete(section) || !gridPrefs.autoExpandMissing,
-      );
+      section.classList.add("collapsed");
     });
     reapplyCompletionHiddenState();
     // A live search filter overrides pref visibility on matched sections
@@ -785,9 +724,9 @@ document.addEventListener("DOMContentLoaded", () => {
       "aria-pressed",
       String(gridPrefs.hideCompleted),
     );
-    el.btnToggleAutoExpand.setAttribute(
+    el.btnToggleSortAlpha.setAttribute(
       "aria-pressed",
-      String(gridPrefs.autoExpandMissing),
+      String(gridPrefs.sortAlphabetical),
     );
   }
 
@@ -799,30 +738,6 @@ document.addEventListener("DOMContentLoaded", () => {
     if (cellEl.classList.contains("repeated")) return "repeated";
     if (cellEl.classList.contains("owned")) return "owned";
     return "empty";
-  }
-
-  /**
-   * Shows/hides one section's group divider based on whether every team
-   * section in that group is currently status-filter-hidden.
-   */
-  function updateGroupStatusFilterVisibility(groupName) {
-    const divider = groupDividers.get(groupName);
-    if (!divider) return;
-
-    if (!activeStatusFilter) {
-      divider.classList.remove("status-filter-hidden");
-      return;
-    }
-
-    const groupSections = el.stickersGrid.querySelectorAll(
-      `.team-section[data-group-name="${groupName}"]`,
-    );
-    const allHidden =
-      groupSections.length > 0 &&
-      Array.from(groupSections).every((s) =>
-        s.classList.contains("status-filter-hidden"),
-      );
-    divider.classList.toggle("status-filter-hidden", allHidden);
   }
 
   /**
@@ -851,10 +766,6 @@ document.addEventListener("DOMContentLoaded", () => {
       });
       section.classList.toggle("status-filter-hidden", !anyVisible);
     });
-
-    groupDividers.forEach((_, groupName) =>
-      updateGroupStatusFilterVisibility(groupName),
-    );
   }
 
   /**
@@ -875,8 +786,6 @@ document.addEventListener("DOMContentLoaded", () => {
       section.querySelectorAll(".sticker-cell"),
     ).some((c) => !c.classList.contains("status-filter-hidden"));
     section.classList.toggle("status-filter-hidden", !anyVisible);
-
-    updateGroupStatusFilterVisibility(section.dataset.groupName);
   }
 
   /** Syncs the legend filter buttons' pressed state with activeStatusFilter. */
@@ -889,53 +798,20 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  function expandGroupTeams(groupName) {
-    if (groupName === "FWC & CC") {
-      const fwc = document.querySelector(
-        '.team-section[data-section-id="FWC"]',
-      );
-      const cc = document.querySelector('.team-section[data-section-id="CC"]');
-      if (fwc) fwc.classList.remove("collapsed");
-      if (cc) cc.classList.remove("collapsed");
-    } else {
-      const groupTeams = StickerParser.TEAMS.filter(
-        (t) => t.group === groupName,
-      );
-      groupTeams.forEach((team) => {
-        const sect = document.querySelector(
-          `.team-section[data-section-id="${team.code}"]`,
-        );
-        if (sect) sect.classList.remove("collapsed");
-      });
+  /** Creates or updates the "+N" repeats badge on a cell. */
+  function setBadge(cellElement, qty) {
+    let badge = cellElement.querySelector(".sticker-badge");
+    if (!badge) {
+      badge = document.createElement("span");
+      badge.className = "sticker-badge";
+      cellElement.appendChild(badge);
     }
-  }
-
-  function collapseGroupTeams(groupName) {
-    if (groupName === "FWC & CC") {
-      const fwc = document.querySelector(
-        '.team-section[data-section-id="FWC"]',
-      );
-      const cc = document.querySelector('.team-section[data-section-id="CC"]');
-      if (fwc) fwc.classList.add("collapsed");
-      if (cc) cc.classList.add("collapsed");
-    } else {
-      const groupTeams = StickerParser.TEAMS.filter(
-        (t) => t.group === groupName,
-      );
-      groupTeams.forEach((team) => {
-        const sect = document.querySelector(
-          `.team-section[data-section-id="${team.code}"]`,
-        );
-        if (sect) sect.classList.add("collapsed");
-      });
-    }
-  }
-
-  function addBadge(element, qty) {
-    const badge = document.createElement("span");
-    badge.className = "sticker-badge";
     badge.textContent = `+${qty}`;
-    element.appendChild(badge);
+  }
+
+  function removeBadge(cellElement) {
+    const badge = cellElement.querySelector(".sticker-badge");
+    if (badge) badge.remove();
   }
 
   function updateMyAlbumUI() {
@@ -1171,34 +1047,30 @@ document.addEventListener("DOMContentLoaded", () => {
     alert("Álbum atualizado com sucesso!");
   }
 
-  function shareTradeOnWhatsapp() {
+  function openWhatsappShare(msg) {
+    const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`;
+    window.open(url, "_blank");
+  }
 
+  function shareTradeOnWhatsapp() {
     const giveStr = el.btnShareWhatsapp.dataset.give || "";
     const receiveStr = el.btnShareWhatsapp.dataset.receive || "";
 
     const giveArr = giveStr ? giveStr.split(",") : [];
     const receiveArr = receiveStr ? receiveStr.split(",") : [];
 
+    const formatTradeSection = (label, ids) =>
+      `*${label} (${ids.length}):*\n` +
+      (ids.length > 0 ? formatStickerGroups(ids) : "Nenhuma\n");
+
     // Build neat summary message matching requested format
-    let msg = `Stickers Swap FWC 2026 - https://dhaalves.github.io/copa-2026-stickers-swap/\n\n`;
+    const msg =
+      `Stickers Swap FWC 2026 - https://dhaalves.github.io/copa-2026-stickers-swap/\n\n` +
+      formatTradeSection("Repetidas minha que você não tem", giveArr) +
+      `\n` +
+      formatTradeSection("Repetidas suas que eu não tenho", receiveArr);
 
-    if (giveArr.length > 0) {
-      msg += `*Repetidas minha que você não tem (${giveArr.length}):*\n`;
-      msg += formatStickerGroups(giveArr);
-    } else {
-      msg += `*Repetidas minha que você não tem (0):*\nNenhuma\n`;
-    }
-
-    msg += `\n`;
-
-    if (receiveArr.length > 0) {
-      msg += `*Repetidas suas que eu não tenho (${receiveArr.length}):*\n`;
-      msg += formatStickerGroups(receiveArr);
-    } else {
-      msg += `*Repetidas suas que eu não tenho (0):*\nNenhuma\n`;
-    }
-
-    // 1. Copy to clipboard
+    // 1. Copy to clipboard, then 2. open the WhatsApp share link
     navigator.clipboard
       .writeText(msg)
       .then(() => {
@@ -1211,17 +1083,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
         setTimeout(() => {
           el.btnShareWhatsapp.replaceChildren(...originalNodes);
-
-          // 2. Open WhatsApp Share Link
-          const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`;
-          window.open(url, "_blank");
+          openWhatsappShare(msg);
         }, 1500);
       })
       .catch((err) => {
         console.error("Erro ao copiar para clipboard:", err);
         // Fallback: Open whatsapp directly anyway
-        const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`;
-        window.open(url, "_blank");
+        openWhatsappShare(msg);
       });
   }
 
@@ -1396,22 +1264,24 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     }
 
-    // Grid view toggles: hide completed teams / auto-expand missing teams
+    // Grid view toggles: hide completed teams / sort teams alphabetically.
+    // Hide-completed re-applies view state in place; the sort toggle needs a
+    // full grid rebuild to reorder the sections. A status filter forces its
+    // own expand/unhide state; re-assert it instead of letting the
+    // prefs-based view clobber it (renderStickerGrid already does).
     [
-      [el.btnToggleHideCompleted, "hideCompleted"],
-      [el.btnToggleAutoExpand, "autoExpandMissing"],
-    ].forEach(([btn, pref]) => {
+      [
+        el.btnToggleHideCompleted,
+        "hideCompleted",
+        () => (activeStatusFilter ? applyStatusFilter() : applyGridViewPrefs()),
+      ],
+      [el.btnToggleSortAlpha, "sortAlphabetical", renderStickerGrid],
+    ].forEach(([btn, pref, applyView]) => {
       btn.addEventListener("click", () => {
         gridPrefs[pref] = !gridPrefs[pref];
         saveGridPrefs();
         reflectGridPrefButtons();
-        // A status filter forces its own expand/unhide state; re-assert it
-        // instead of letting the prefs-based view clobber it.
-        if (activeStatusFilter) {
-          applyStatusFilter();
-        } else {
-          applyGridViewPrefs();
-        }
+        applyView();
       });
     });
 
