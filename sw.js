@@ -1,4 +1,4 @@
-const CACHE_NAME = 'stickers-swap-v6';
+const CACHE_NAME = 'stickers-swap-v7';
 const ASSETS = [
   './',
   './index.html',

@@ -698,6 +698,7 @@ textarea:focus {
     cursor: pointer;
     position: relative;
     user-select: none;
+    touch-action: manipulation;
     transition: all var(--transition-fast);
 }
 
@@ -745,6 +746,8 @@ textarea:focus {
 
 /* Control Buttons */
 .control-btn {
+    position: relative;
+    touch-action: manipulation;
     width: 20px;
     height: 20px;
     border-radius: 4px;
@@ -787,6 +790,46 @@ textarea:focus {
     background: rgba(234, 179, 8, 0.25);
     border-color: rgba(234, 179, 8, 0.5);
     color: #eab308;
+}
+
+/* Touch devices: bigger −/+ buttons, and invisible hit areas that split the
+   lower half of the cell between them, so a fat-finger tap near a button
+   never lands on the cell itself (which would toggle it to "missing"). */
+@media (pointer: coarse) {
+    .cell-controls {
+        height: 30px;
+        padding: 0 3px 3px;
+        align-items: flex-end;
+    }
+
+    .control-btn {
+        width: 26px;
+        height: 26px;
+        font-size: 15px;
+    }
+
+    .control-btn::before {
+        content: "";
+        position: absolute;
+        top: -14px;
+        bottom: -3px;
+    }
+
+    .control-btn.btn-dec::before {
+        left: -3px;
+        right: -6px;
+    }
+
+    .control-btn.btn-inc::before {
+        right: -3px;
+        left: -6px;
+    }
+
+    /* Lift the number a bit further so the larger buttons don't cover it */
+    .sticker-cell.owned .sticker-label,
+    .sticker-cell.repeated .sticker-label {
+        transform: translateY(-8px);
+    }
 }
 
 /* Sticker state modifiers */
